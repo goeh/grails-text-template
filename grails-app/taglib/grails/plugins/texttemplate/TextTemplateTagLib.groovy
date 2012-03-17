@@ -23,12 +23,12 @@ class TextTemplateTagLib {
 
     def textTemplateService
 
-    def text = {attrs ->
-        out << textTemplateService.text(attrs.name, attrs.lang, attrs.tenant)
+    def text = {attrs, body ->
+        out << (textTemplateService.text(attrs.name, attrs.lang, attrs.tenant) ?: body())
     }
 
-    def html = {attrs ->
-        out << textTemplateService.html(attrs.name, attrs.lang, attrs.tenant)
+    def html = {attrs, body ->
+        out << (textTemplateService.html(attrs.name, attrs.lang, attrs.tenant) ?: body())
     }
 
     def eachTemplate = {attrs, body ->
