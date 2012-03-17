@@ -26,4 +26,17 @@ class TextTemplateTagLib {
     def text = {attrs ->
         out << textTemplateService.text(attrs.name, attrs.lang, attrs.tenant)
     }
+
+    def html = {attrs ->
+        out << textTemplateService.html(attrs.name, attrs.lang, attrs.tenant)
+    }
+
+    def eachTemplate = {attrs, body ->
+        def names = textTemplateService.getTemplateNames(attrs.name, attrs.tenant)
+        for(name in names) {
+            def t = textTemplateService.template(name, attrs.tenant)
+            def map = [name:t.name, status:t.status, visibleFrom:t.visibleFrom, visibleTo:t.visibleTo]
+            out << body(map)
+        }
+    }
 }

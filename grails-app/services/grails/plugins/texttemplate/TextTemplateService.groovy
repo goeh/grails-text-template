@@ -82,7 +82,7 @@ class TextTemplateService {
         }
     }
 
-    List getTemplateNames(String beginsWith, Long tenant = null) {
+    List<String> getTemplateNames(String beginsWith, Long tenant = null) {
         TextTemplate.createCriteria().list([sort: 'name', order: 'asc']) {
             if (beginsWith) {
                 ilike('name', wildcard(beginsWith))
@@ -92,7 +92,7 @@ class TextTemplateService {
             } else {
                 isNull('tenantId')
             }
-        }
+        }.collect{it.name}
     }
 
     TextTemplate template(String name, Long tenant = null) {

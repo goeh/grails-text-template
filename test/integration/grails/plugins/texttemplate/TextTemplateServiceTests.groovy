@@ -79,4 +79,14 @@ class TextTemplateServiceTests extends GroovyTestCase {
         textTemplateService.setVisible(NAME, null, new Date() - 1)
         assert textTemplateService.text(NAME) == null
     }
+
+    void testListTemplates() {
+        textTemplateService.createContent("test.integration.first", "text/plain", "First")
+        textTemplateService.createContent("test.integration.second", "text/plain", "Second")
+        textTemplateService.createContent("test.integration.third", "text/plain", "Third")
+        textTemplateService.createContent("test.unit.simple", "text/plain", "Test")
+
+        def result = textTemplateService.getTemplateNames("test.integration")
+        assert result.size() == 3
+    }
 }
