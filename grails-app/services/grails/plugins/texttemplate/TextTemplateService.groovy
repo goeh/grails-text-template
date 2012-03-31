@@ -24,6 +24,8 @@ class TextTemplateService {
 
     static transactional = false
 
+    def groovyPagesTemplateEngine
+
     String text(String name, String language = null, Long tenant = null) {
         content(name, 'text/plain', language, tenant)
     }
@@ -50,7 +52,7 @@ class TextTemplateService {
             throw new IllegalArgumentException("Mandatory parameter [contentType] is missing")
         }
         def now = new Date()
-        TextContent.createCriteria().get {
+        def c = TextContent.createCriteria().get {
             template {
                 eq('status', TextTemplate.STATUS_PUBLISHED)
                 eq('name', name)
@@ -68,7 +70,12 @@ class TextTemplateService {
             } else {
                 isNull('language')
             }
-        }?.text
+        }
+        if(c) {
+            // If template was found, we always return something != null
+            return c.text ?: ''
+        }
+        return null // Returning null means template was not found
     }
 
     private String wildcard(String q) {
@@ -92,7 +99,7 @@ class TextTemplateService {
             } else {
                 isNull('tenantId')
             }
-        }.collect{it.name}
+        }.collect {it.name}
     }
 
     TextTemplate template(String name, Long tenant = null) {
@@ -190,5 +197,22 @@ class TextTemplateService {
             textTemplate.addToContent(textContent)
         }
         textContent.save(failOnError: true, flush: true)
+    }
+
+    String applyTemplate(String templateName, String contentType, Map binding) {
+        def out = new StringWriter()
+        try {
+            applyTemplate(out, templateName, contentType, binding)
+        } catch (Exception e) {
+            out << e.message
+        }
+        return out.toString()
+    }
+
+    void applyTemplate(Writer out, String templateName, String contentType, Map binding) {
+        def templateContent = content(templateName, contentType)
+        if (templateContent) {
+            groovyPagesTemplateEngine.createTemplate(templateContent, "${templateName}-${contentType.replace('/', '-')}").make(binding).writeTo(out)
+        }
     }
 }

@@ -89,4 +89,12 @@ class TextTemplateServiceTests extends GroovyTestCase {
         def result = textTemplateService.getTemplateNames("test.integration")
         assert result.size() == 3
     }
+
+    void testApplyTemplate() {
+        textTemplateService.createContent("test.integration.apply", "text/plain", "Hello \${arg}")
+        textTemplateService.createContent("test.integration.apply", "text/html", "<h1>Hello \${arg}</h1>")
+        assert textTemplateService.applyTemplate("test.integration.apply", "text/plain", [arg:"World!"]) == "Hello World!"
+        assert textTemplateService.applyTemplate("test.integration.apply", "text/html", [arg:"World!"]) == "<h1>Hello World!</h1>"
+        assert textTemplateService.applyTemplate("test.integration.apply", "text/xml", [arg:"World!"]) == ''
+    }
 }
