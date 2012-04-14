@@ -17,7 +17,7 @@
 
 class TextTemplateGrailsPlugin {
     // the plugin version
-    def version = "0.4"
+    def version = "0.5"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.0 > *"
     // the other plugins this plugin depends on
@@ -33,6 +33,8 @@ class TextTemplateGrailsPlugin {
     def description = '''\
 This plugin provides management and access to text templates
 that can be used anywhere in your Grails application.
+For example email templates, dynamic page content, etc.
+An administration UI is provided where administrators can create and edit text templates.
 '''
 
     // URL to the plugin's documentation

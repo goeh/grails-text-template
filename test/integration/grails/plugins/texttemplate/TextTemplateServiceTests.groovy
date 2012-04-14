@@ -21,6 +21,7 @@ package grails.plugins.texttemplate
 
 class TextTemplateServiceTests extends GroovyTestCase {
 
+    def grailsApplication
     def textTemplateService
 
     void testCreateContent() {
@@ -96,5 +97,10 @@ class TextTemplateServiceTests extends GroovyTestCase {
         assert textTemplateService.applyTemplate("test.integration.apply", "text/plain", [arg:"World!"]) == "Hello World!"
         assert textTemplateService.applyTemplate("test.integration.apply", "text/html", [arg:"World!"]) == "<h1>Hello World!</h1>"
         assert textTemplateService.applyTemplate("test.integration.apply", "text/xml", [arg:"World!"]) == ''
+    }
+
+    void testCreateLink() {
+        assert textTemplateService.createLink(controller:"foo", action:"bar", id:42, absolute:true) == "http://localhost/foo/bar/42"
+        assert textTemplateService.createLink(controller:"foo", action:"bar", id:42, absolute:false) == "/foo/bar/42"
     }
 }

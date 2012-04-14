@@ -19,12 +19,15 @@ package grails.plugins.texttemplate
 
 import org.springframework.transaction.annotation.Transactional
 import groovy.json.JsonSlurper
+import org.codehaus.groovy.grails.web.mapping.LinkGenerator
 
 class TextTemplateService {
 
     static transactional = false
 
     def groovyPagesTemplateEngine
+
+    LinkGenerator grailsLinkGenerator
 
     String text(String name, String language = null, Long tenant = null) {
         content(name, 'text/plain', language, tenant)
@@ -214,5 +217,15 @@ class TextTemplateService {
         if (templateContent) {
             groovyPagesTemplateEngine.createTemplate(templateContent, "${templateName}-${contentType.replace('/', '-')}").make(binding).writeTo(out)
         }
+    }
+
+    /**
+     * Create link to actions from outside a web request using Grails LinkGenerator.
+     *
+     * @param params see Grails link tag
+     * @return the generated URL as String
+     */
+    String createLink(Map params) {
+        grailsLinkGenerator.link(params)
     }
 }
