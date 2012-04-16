@@ -74,7 +74,7 @@ class TextTemplateService {
                 isNull('language')
             }
         }
-        if(c) {
+        if (c) {
             // If template was found, we always return something != null
             return c.text ?: ''
         }
@@ -202,6 +202,65 @@ class TextTemplateService {
         textContent.save(failOnError: true, flush: true)
     }
 
+    @Transactional
+    boolean deleteTemplate(String name, Long tenant = null) {
+        if (name == null) {
+            throw new IllegalArgumentException("Mandatory parameter [name] is missing")
+        }
+        // Find or create the template
+        def textTemplate = TextTemplate.createCriteria().get {
+            eq('name', name)
+            if (tenant) {
+                eq('tenantId', tenant)
+            } else {
+                isNull('tenantId')
+            }
+        }
+        if (textTemplate) {
+            textTemplate.delete()
+            return true
+        }
+        return false
+    }
+
+    @Transactional
+    boolean deleteContent(String name, String contentType, String language = null, Long tenant = null) {
+        if (name == null) {
+            throw new IllegalArgumentException("Mandatory parameter [name] is missing")
+        }
+        if (contentType == null) {
+            throw new IllegalArgumentException("Mandatory parameter [contentType] is missing")
+        }
+        // Find or create the template
+        def textTemplate = TextTemplate.createCriteria().get {
+            eq('name', name)
+            if (tenant) {
+                eq('tenantId', tenant)
+            } else {
+                isNull('tenantId')
+            }
+        }
+        if (!textTemplate) {
+            return false
+        }
+        // Find or create the content.
+        def textContent = TextContent.createCriteria().get {
+            eq('template', textTemplate)
+            eq('contentType', contentType)
+            if (language) {
+                eq('language', language)
+            } else {
+                isNull('language')
+            }
+        }
+        if (textContent) {
+            textTemplate.removeFromContent(textContent)
+            textContent.delete()
+            return true
+        }
+        return false
+    }
+
     String applyTemplate(String templateName, String contentType, Map binding) {
         def out = new StringWriter()
         try {
@@ -213,7 +272,9 @@ class TextTemplateService {
     }
 
     void applyTemplate(Writer out, String templateName, String contentType, Map binding) {
-        def templateContent = content(templateName, contentType)
+        Long tenant = binding.tenantId ?: binding.tenant
+        String language = binding.language ?: binding.lang
+        def templateContent = content(templateName, contentType, language, tenant)
         if (templateContent) {
             groovyPagesTemplateEngine.createTemplate(templateContent, "${templateName}-${contentType.replace('/', '-')}").make(binding).writeTo(out)
         }

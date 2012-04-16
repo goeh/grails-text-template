@@ -37,6 +37,34 @@ class TextTemplateTagLibTests extends GroovyPagesTestCase {
         assert applyTemplate('<tt:text name="test.integration.empty">ERROR</tt:text>') == ' '
     }
 
+    void testAnyType() {
+        textTemplateService.createContent("test.integration.any", "text/html", "<h1>Hello World</h1>")
+
+        assert applyTemplate('<tt:content name="test.integration.any">FOO</tt:content>') == '<h1>Hello World</h1>'
+        assert applyTemplate('<tt:content name="test.integration.any" contentType="text/plain">FOO</tt:content>') == 'FOO'
+
+        textTemplateService.createContent("test.integration.any", "text/plain", "Hello World")
+
+        assert applyTemplate('<tt:content name="test.integration.any" contentType="text/plain">FOO</tt:content>') == 'Hello World'
+        // HTML templates take precedence
+        assert applyTemplate('<tt:content name="test.integration.any">FOO</tt:content>') == '<h1>Hello World</h1>'
+
+        textTemplateService.deleteContent("test.integration.any", "text/html")
+
+        // Now we only have text/plain left.
+        assert applyTemplate('<tt:content name="test.integration.any">FOO</tt:content>') == 'Hello World'
+
+        textTemplateService.deleteTemplate("test.integration.any")
+        // Now we don't have anything left.
+        assert applyTemplate('<tt:content name="test.integration.any">FOO</tt:content>') == 'FOO'
+    }
+
+    void testGspTag() {
+        textTemplateService.createContent("test.integration.gsp", "text/html", "<g:link controller=\"foo\" action=\"show\" id=\"\${bean.id}\">\${bean.name}</g:link>")
+
+        assert applyTemplate('<tt:html name="test.integration.gsp"/>', [bean:[id:42, name:'Grails']]) == '<a href="/foo/show/42">Grails</a>'
+    }
+
     void testIterate() {
         textTemplateService.createContent("test.integration.first", "text/plain", "First")
         textTemplateService.createContent("test.integration.second", "text/plain", "Second")

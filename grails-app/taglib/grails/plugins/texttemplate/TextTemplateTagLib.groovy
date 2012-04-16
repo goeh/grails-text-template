@@ -22,13 +22,58 @@ class TextTemplateTagLib {
     static namespace = "tt"
 
     def textTemplateService
+    def groovyPagesTemplateEngine
 
     def text = {attrs, body ->
-        out << (textTemplateService.text(attrs.name, attrs.lang, attrs.tenant) ?: body())
+        def s = textTemplateService.text(attrs.name, attrs.lang, attrs.tenant)
+        if(s) {
+            if(attrs.raw) {
+                out << s
+            } else {
+                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-text-plain").make(pageScope.variables).writeTo(out)
+            }
+        } else {
+            out << body()
+        }
     }
 
     def html = {attrs, body ->
-        out << (textTemplateService.html(attrs.name, attrs.lang, attrs.tenant) ?: body())
+        def s = textTemplateService.html(attrs.name, attrs.lang, attrs.tenant)
+        if(s) {
+            if(attrs.raw) {
+                out << s
+            } else {
+                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-text-html").make(pageScope.variables).writeTo(out)
+            }
+        } else {
+            out << body()
+        }
+    }
+
+    def content = {attrs, body ->
+        def contentType = attrs.contentType
+        def s
+        if(contentType) {
+            s = textTemplateService.content(attrs.name, contentType, attrs.lang, attrs.tenant)
+        } else {
+            for(type in ['text/html', 'text/plain']) {
+                s = textTemplateService.content(attrs.name, type, attrs.lang, attrs.tenant)
+                if(s) {
+                    contentType = type
+                    break
+                }
+            }
+        }
+
+        if(s) {
+            if(attrs.raw) {
+                out << s
+            } else {
+                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-${contentType.replace('/', '-')}").make(pageScope.variables).writeTo(out)
+            }
+        } else {
+            out << body()
+        }
     }
 
     def eachTemplate = {attrs, body ->
