@@ -41,6 +41,10 @@ class TextTemplate {
         status(inList: STATUSES)
     }
 
+    static mapping = {
+        content cascade: 'all'
+    }
+
     static transients = ['summary']
 
     // Wed Dec 31 12:00:00 GMT 2031

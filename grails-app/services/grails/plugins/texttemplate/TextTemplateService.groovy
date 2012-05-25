@@ -17,13 +17,10 @@
 
 package grails.plugins.texttemplate
 
-import org.springframework.transaction.annotation.Transactional
 import groovy.json.JsonSlurper
 import org.codehaus.groovy.grails.web.mapping.LinkGenerator
 
 class TextTemplateService {
-
-    static transactional = false
 
     def groovyPagesTemplateEngine
 
@@ -160,7 +157,6 @@ class TextTemplateService {
         }
     }
 
-    @Transactional
     def createContent(String name, String contentType, String text, String language = null, Long tenant = null) {
         if (name == null) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")
@@ -176,21 +172,12 @@ class TextTemplateService {
             } else {
                 isNull('tenantId')
             }
-        }
-        if (!textTemplate) {
-            textTemplate = new TextTemplate(status: TextTemplate.STATUS_PUBLISHED, name: name, tenantId: tenant).save(failOnError: true, flush: true)
+        } ?: new TextTemplate(status: TextTemplate.STATUS_PUBLISHED, name: name, tenantId: tenant)
+
+        def textContent = textTemplate.content?.find{
+            it.contentType == contentType && (language ? it.language == language : it.language == null)
         }
 
-        // Find or create the content.
-        def textContent = TextContent.createCriteria().get {
-            eq('template', textTemplate)
-            eq('contentType', contentType)
-            if (language) {
-                eq('language', language)
-            } else {
-                isNull('language')
-            }
-        }
         if (textContent) {
             // Update existing content
             textContent.text = text
@@ -199,10 +186,12 @@ class TextTemplateService {
             textContent = new TextContent(language: language, contentType: contentType, text: text)
             textTemplate.addToContent(textContent)
         }
-        textContent.save(failOnError: true, flush: true)
+
+        textTemplate.save(failOnError: true)
+
+        return textContent
     }
 
-    @Transactional
     boolean deleteTemplate(String name, Long tenant = null) {
         if (name == null) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")
@@ -223,7 +212,6 @@ class TextTemplateService {
         return false
     }
 
-    @Transactional
     boolean deleteContent(String name, String contentType, String language = null, Long tenant = null) {
         if (name == null) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")

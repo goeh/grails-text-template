@@ -17,7 +17,7 @@
 
 class TextTemplateGrailsPlugin {
     // the plugin version
-    def version = "0.6"
+    def version = "0.6.3"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.0 > *"
     // the other plugins this plugin depends on
@@ -52,7 +52,7 @@ An administration UI is provided where administrators can create and edit text t
 //    def developers = [ [ name: "Joe Bloggs", email: "joe@bloggs.net" ]]
 
     // Location of the plugin's issue tracker.
-    def issueManagement = [ system: "JIRA", url: "http://jira.grails.org/browse/GPTXTTMPL" ]
+    def issueManagement = [ system: "github", url: "https://github.com/goeh/grails-text-template/issues" ]
 
     // Online location of the plugin's browseable source code.
     def scm = [ url: "https://github.com/goeh/grails-text-template" ]
