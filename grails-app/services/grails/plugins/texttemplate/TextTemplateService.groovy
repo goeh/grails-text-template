@@ -19,6 +19,10 @@ package grails.plugins.texttemplate
 
 import groovy.json.JsonSlurper
 import org.codehaus.groovy.grails.web.mapping.LinkGenerator
+import grails.gsp.PageRenderer
+import org.springframework.web.context.support.WebApplicationContextUtils
+import org.codehaus.groovy.grails.web.context.ServletContextHolder
+import org.springframework.web.context.request.RequestContextHolder
 
 class TextTemplateService {
 
@@ -174,7 +178,7 @@ class TextTemplateService {
             }
         } ?: new TextTemplate(status: TextTemplate.STATUS_PUBLISHED, name: name, tenantId: tenant)
 
-        def textContent = textTemplate.content?.find{
+        def textContent = textTemplate.content?.find {
             it.contentType == contentType && (language ? it.language == language : it.language == null)
         }
 
@@ -254,6 +258,7 @@ class TextTemplateService {
         try {
             applyTemplate(out, templateName, contentType, binding)
         } catch (Exception e) {
+            log.error("Failed to apply template [$templateName] to binding $binding", e)
             out << e.message
         }
         return out.toString()
@@ -264,7 +269,23 @@ class TextTemplateService {
         String language = binding.language ?: binding.lang
         def templateContent = content(templateName, contentType, language, tenant)
         if (templateContent) {
-            groovyPagesTemplateEngine.createTemplate(templateContent, "${templateName}-${contentType.replace('/', '-')}").make(binding).writeTo(out)
+            def requestAttributes = RequestContextHolder.getRequestAttributes()
+            boolean unbindRequest = false
+            try {
+                // outside of an executing request, establish a mock version
+                if (!requestAttributes) {
+                    def servletContext = ServletContextHolder.getServletContext()
+                    def applicationContext = WebApplicationContextUtils.getRequiredWebApplicationContext(servletContext)
+                    requestAttributes = grails.util.GrailsWebUtil.bindMockWebRequest(applicationContext)
+                    unbindRequest = true
+                    println "Not in web request, created mock request: $requestAttributes"
+                }
+                groovyPagesTemplateEngine.createTemplate(templateContent, "${templateName}-${contentType.replace('/', '-')}").make(binding).writeTo(out)
+            } finally {
+                if (unbindRequest) {
+                    RequestContextHolder.setRequestAttributes(null)
+                }
+            }
         }
     }
 
