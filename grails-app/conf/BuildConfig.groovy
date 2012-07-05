@@ -30,11 +30,19 @@ grails.project.dependency.resolution = {
 
     plugins {
         build(":tomcat:$grailsVersion",
-              ":release:2.0.2") {
+              ":release:2.0.3") {
             export = false
         }
         runtime(":hibernate:$grailsVersion") {
             export = false
+        }
+        compile ":cache:1.0.0"
+        runtime ":resources:1.1.6"
+        runtime ":fields:1.2"
+        runtime ":jquery:1.7.1"
+        runtime ":ckeditor:3.6.3.0"
+        runtime(":twitter-bootstrap:2.0.2.24") {
+            excludes 'resources'
         }
     }
 }

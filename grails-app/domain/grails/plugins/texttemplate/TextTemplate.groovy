@@ -12,7 +12,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * under the License.
  */
 
 package grails.plugins.texttemplate
@@ -27,11 +26,12 @@ class TextTemplate {
     public static final int STATUS_PUBLISHED = 1
     public static final List STATUSES = [STATUS_DISABLED, STATUS_DRAFT, STATUS_PUBLISHED].asImmutable()
 
-    Long tenantId
+    Integer tenantId
     String name
     int status
     Date visibleFrom
     Date visibleTo
+    TextTemplate master
 
     static hasMany = [content:TextContent]
 
@@ -39,28 +39,18 @@ class TextTemplate {
         tenantId(nullable:true)
         name(maxSize:80, blank:false, unique:'tenantId')
         status(inList: STATUSES)
+        visibleFrom(nullable:true)
+        visibleTo(nullable:true)
+        master(nullable:true)
     }
 
     static mapping = {
-        content cascade: 'all'
+        content cascade: 'all', sort: 'name'
     }
 
     static transients = ['summary']
 
-    // Wed Dec 31 12:00:00 GMT 2031
-    private static final long FAR_AWAY = 1956488400000L
-
-    def beforeValidate() {
-        if (!visibleFrom) {
-            visibleFrom = new Date()
-        }
-        if (!visibleTo) {
-            visibleTo = new Date(FAR_AWAY)
-        }
-    }
-
-    @Override
-    public String toString() {
+    String toString() {
         return name
     }
 

@@ -24,3 +24,13 @@ log4j = {
 }
 grails.views.default.codec="none" // none, html, base64
 grails.views.gsp.encoding="UTF-8"
+
+grails.cache.config = {
+   cache {
+      name 'textTemplate'
+      eternal false
+      overflowToDisk true
+      maxElementsInMemory 100
+      maxElementsOnDisk 1000
+   }
+}

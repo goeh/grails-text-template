@@ -12,72 +12,99 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- * under the License.
  */
 
 package grails.plugins.texttemplate
 
 import groovy.json.JsonSlurper
 import org.codehaus.groovy.grails.web.mapping.LinkGenerator
-import grails.gsp.PageRenderer
 import org.springframework.web.context.support.WebApplicationContextUtils
 import org.codehaus.groovy.grails.web.context.ServletContextHolder
 import org.springframework.web.context.request.RequestContextHolder
+import grails.plugin.cache.CacheEvict
+import grails.plugin.cache.Cacheable
 
 class TextTemplateService {
 
     def groovyPagesTemplateEngine
+    def currentTenant
 
     LinkGenerator grailsLinkGenerator
 
-    String text(String name, String language = null, Long tenant = null) {
-        content(name, 'text/plain', language, tenant)
+    String text(String name, String language = null) {
+        content(name, 'text/plain', language)
     }
 
-    String html(String name, String language = null, Long tenant = null) {
-        content(name, 'text/html', language, tenant)
+    String html(String name, String language = null) {
+        content(name, 'text/html', language)
     }
 
-    def xml(String name, String language = null, Long tenant = null) {
-        String s = content(name, 'text/xml', language, tenant)
+    def xml(String name, String language = null) {
+        String s = content(name, 'text/xml', language)
         s ? new XmlSlurper().parseText(s) : null
     }
 
-    def json(String name, String language = null, Long tenant = null) {
-        String s = content(name, 'application/json', language, tenant)
+    def json(String name, String language = null) {
+        String s = content(name, 'application/json', language)
         s ? new JsonSlurper().parseText(s) : null
     }
 
-    String content(String name, String contentType, String language = null, Long tenant = null) {
-        if (name == null) {
+    private List getNamePair(String name) {
+        def idx = name.lastIndexOf('.')
+        return idx == -1 ? [name, null] : [name.substring(0, idx), name.substring(idx + 1)]
+    }
+
+    @Cacheable('textTemplate')
+    String content(String name, String contentType = null, String language = null) {
+        if (!name) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")
         }
-        if (contentType == null) {
-            throw new IllegalArgumentException("Mandatory parameter [contentType] is missing")
+        def (templateName, contentName) = getNamePair(name)
+        if (!templateName) {
+            throw new IllegalArgumentException("Invalid template name [$name]")
         }
+        def tenant = currentTenant?.get()
         def now = new Date()
-        def c = TextContent.createCriteria().get {
+        def result = TextContent.createCriteria().list {
             template {
                 eq('status', TextTemplate.STATUS_PUBLISHED)
-                eq('name', name)
-                if (tenant) {
+                eq('name', templateName)
+                if (tenant != null) {
                     eq('tenantId', tenant)
                 } else {
                     isNull('tenantId')
                 }
-                le('visibleFrom', now)
-                ge('visibleTo', now)
+                or {
+                    le('visibleFrom', now)
+                    isNull('visibleFrom')
+                }
+                or {
+                    ge('visibleTo', now)
+                    isNull('visibleTo')
+                }
             }
-            eq('contentType', contentType)
+            if (contentName) {
+                eq('name', contentName)
+            }
+            if (contentType) {
+                eq('contentType', contentType)
+            }
             if (language) {
                 eq('language', language)
             } else {
                 isNull('language')
             }
+            cache true
         }
-        if (c) {
-            // If template was found, we always return something != null
-            return c.text ?: ''
+        if (result) {
+            def s = new StringBuilder()
+            for (c in result) {
+                def text = c.text
+                if (text) {
+                    s << text
+                }
+            }
+            return s.toString()
         }
         return null // Returning null means template was not found
     }
@@ -93,26 +120,49 @@ class TextTemplateService {
         }
     }
 
-    List<String> getTemplateNames(String beginsWith, Long tenant = null) {
+
+    List<String> getTemplateNames(String beginsWith) {
+        def tenant = currentTenant?.get()
         TextTemplate.createCriteria().list([sort: 'name', order: 'asc']) {
+            projections {
+                property('name')
+            }
             if (beginsWith) {
                 ilike('name', wildcard(beginsWith))
             }
-            if (tenant) {
+            if (tenant != null) {
                 eq('tenantId', tenant)
             } else {
                 isNull('tenantId')
             }
-        }.collect {it.name}
+        }
     }
 
-    TextTemplate template(String name, Long tenant = null) {
+    List<String> getContentNames(String templateName) {
+        def tenant = currentTenant?.get()
+        TextContent.createCriteria().list([sort: 'name', order: 'asc']) {
+            projections {
+                property('name')
+            }
+            template {
+                eq('name', templateName)
+                if (tenant != null) {
+                    eq('tenantId', tenant)
+                } else {
+                    isNull('tenantId')
+                }
+            }
+        }
+    }
+
+    TextTemplate template(String name) {
         if (name == null) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")
         }
+        def tenant = currentTenant?.get()
         TextTemplate.createCriteria().get {
             eq('name', name)
-            if (tenant) {
+            if (tenant != null) {
                 eq('tenantId', tenant)
             } else {
                 isNull('tenantId')
@@ -120,8 +170,9 @@ class TextTemplateService {
         }
     }
 
-    void setStatusDisabled(String name, Long tenant = null) {
-        def tmpl = template(name, tenant)
+    @CacheEvict(value = 'textTemplate', allEntries = true)
+    void setStatusDisabled(String name) {
+        def tmpl = template(name)
         if (tmpl) {
             tmpl.status = TextTemplate.STATUS_DISABLED
         } else {
@@ -129,8 +180,9 @@ class TextTemplateService {
         }
     }
 
-    void setStatusDraft(String name, Long tenant = null) {
-        def tmpl = template(name, tenant)
+    @CacheEvict(value = 'textTemplate', allEntries = true)
+    void setStatusDraft(String name) {
+        def tmpl = template(name)
         if (tmpl) {
             tmpl.status = TextTemplate.STATUS_DRAFT
         } else {
@@ -138,8 +190,9 @@ class TextTemplateService {
         }
     }
 
-    void setStatusPublished(String name, Long tenant = null) {
-        def tmpl = template(name, tenant)
+    @CacheEvict(value = 'textTemplate', allEntries = true)
+    void setStatusPublished(String name) {
+        def tmpl = template(name)
         if (tmpl) {
             tmpl.status = TextTemplate.STATUS_PUBLISHED
         } else {
@@ -147,63 +200,73 @@ class TextTemplateService {
         }
     }
 
-    void setVisible(String name, Date visibleFrom, Date visibleTo, Long tenant = null) {
-        def tmpl = template(name, tenant)
+    @CacheEvict(value = 'textTemplate', allEntries = true)
+    void setVisible(String name, Date visibleFrom, Date visibleTo) {
+        def tmpl = template(name)
         if (tmpl) {
-            if (visibleFrom) {
-                tmpl.visibleFrom = visibleFrom
-            }
-            if (visibleTo) {
-                tmpl.visibleTo = visibleTo
-            }
+            tmpl.visibleFrom = visibleFrom
+            tmpl.visibleTo = visibleTo
         } else {
             throw new IllegalArgumentException("Template not found: $name")
         }
     }
 
-    def createContent(String name, String contentType, String text, String language = null, Long tenant = null) {
+    @CacheEvict(value = 'textTemplate', allEntries = true)
+    def createContent(String name, String contentType, String text, String language = null) {
         if (name == null) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")
         }
         if (contentType == null) {
             throw new IllegalArgumentException("Mandatory parameter [contentType] is missing")
         }
+        def (templateName, contentName) = getNamePair(name)
+        def tenant = currentTenant?.get()
         // Find or create the template
         def textTemplate = TextTemplate.createCriteria().get {
-            eq('name', name)
-            if (tenant) {
+            eq('name', templateName)
+            if (tenant != null) {
                 eq('tenantId', tenant)
             } else {
                 isNull('tenantId')
             }
-        } ?: new TextTemplate(status: TextTemplate.STATUS_PUBLISHED, name: name, tenantId: tenant)
+        } ?: new TextTemplate(status: TextTemplate.STATUS_PUBLISHED, name: templateName, tenantId: tenant)
 
-        def textContent = textTemplate.content?.find {
-            it.contentType == contentType && (language ? it.language == language : it.language == null)
-        }
+        def textContent = textTemplate.id ? TextContent.createCriteria().get() {
+            eq('template', textTemplate)
+            eq('name', contentName)
+            eq('contentType', contentType)
+            if (language) {
+                eq('language', language)
+            }
+        } : null
 
         if (textContent) {
             // Update existing content
             textContent.text = text
         } else {
             // Create new content
-            textContent = new TextContent(language: language, contentType: contentType, text: text)
-            textTemplate.addToContent(textContent)
+            textContent = new TextContent(template: textTemplate, name: contentName, language: language, contentType: contentType, text: text)
+            if (textContent.validate()) {
+                textTemplate.addToContent(textContent)
+            } else {
+                throw new RuntimeException(textContent.errors.toString())
+            }
         }
 
         textTemplate.save(failOnError: true)
-
         return textContent
     }
 
-    boolean deleteTemplate(String name, Long tenant = null) {
+    @CacheEvict(value = 'textTemplate', allEntries = true)
+    boolean deleteTemplate(String name) {
         if (name == null) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")
         }
+        def tenant = currentTenant?.get()
         // Find or create the template
         def textTemplate = TextTemplate.createCriteria().get {
             eq('name', name)
-            if (tenant) {
+            if (tenant != null) {
                 eq('tenantId', tenant)
             } else {
                 isNull('tenantId')
@@ -216,17 +279,17 @@ class TextTemplateService {
         return false
     }
 
-    boolean deleteContent(String name, String contentType, String language = null, Long tenant = null) {
+    @CacheEvict(value = 'textTemplate', allEntries = true)
+    boolean deleteContent(String name, String contentType, String language = null) {
         if (name == null) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")
         }
-        if (contentType == null) {
-            throw new IllegalArgumentException("Mandatory parameter [contentType] is missing")
-        }
+        def tenant = currentTenant?.get()
+        def (templateName, contentName) = getNamePair(name)
         // Find or create the template
         def textTemplate = TextTemplate.createCriteria().get {
-            eq('name', name)
-            if (tenant) {
+            eq('name', templateName)
+            if (tenant != null) {
                 eq('tenantId', tenant)
             } else {
                 isNull('tenantId')
@@ -236,21 +299,25 @@ class TextTemplateService {
             return false
         }
         // Find or create the content.
-        def textContent = TextContent.createCriteria().get {
+        def result = TextContent.createCriteria().list {
             eq('template', textTemplate)
-            eq('contentType', contentType)
+            if (contentName) {
+                eq('name', contentName)
+            }
+            if (contentType) {
+                eq('contentType', contentType)
+            }
             if (language) {
                 eq('language', language)
             } else {
                 isNull('language')
             }
         }
-        if (textContent) {
+        for (textContent in result) {
             textTemplate.removeFromContent(textContent)
             textContent.delete()
-            return true
         }
-        return false
+        return !result.isEmpty()
     }
 
     String applyTemplate(String templateName, String contentType, Map binding) {
@@ -265,9 +332,8 @@ class TextTemplateService {
     }
 
     void applyTemplate(Writer out, String templateName, String contentType, Map binding) {
-        Long tenant = binding.tenantId ?: binding.tenant
         String language = binding.language ?: binding.lang
-        def templateContent = content(templateName, contentType, language, tenant)
+        def templateContent = content(templateName, contentType, language)
         if (templateContent) {
             def requestAttributes = RequestContextHolder.getRequestAttributes()
             boolean unbindRequest = false
@@ -278,7 +344,7 @@ class TextTemplateService {
                     def applicationContext = WebApplicationContextUtils.getRequiredWebApplicationContext(servletContext)
                     requestAttributes = grails.util.GrailsWebUtil.bindMockWebRequest(applicationContext)
                     unbindRequest = true
-                    println "Not in web request, created mock request: $requestAttributes"
+                    log.info "Not in web request, created mock request: $requestAttributes"
                 }
                 groovyPagesTemplateEngine.createTemplate(templateContent, "${templateName}-${contentType.replace('/', '-')}").make(binding).writeTo(out)
             } finally {

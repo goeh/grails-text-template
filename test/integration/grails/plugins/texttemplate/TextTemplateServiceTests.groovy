@@ -17,35 +17,58 @@
 
 package grails.plugins.texttemplate
 
-
-
 class TextTemplateServiceTests extends GroovyTestCase {
 
     def grailsApplication
     def textTemplateService
+    def currentTenant
 
     void testCreateContent() {
-        def content = textTemplateService.createContent("test.integration.foo", "text/plain", "Hello World")
+        def content = textTemplateService.createContent("test-integration-foo", "text/plain", "Hello World")
         assert content != null
+        assert content.name == 'plain'
         assert content.text == 'Hello World'
         assert content.language == null
         assert content.contentType == 'text/plain'
     }
 
     void testGetContent() {
-        textTemplateService.createContent("test.integration.foo", "text/plain", "Hello World")
-        textTemplateService.createContent("test.integration.foo", "text/html", "<h1>Hello World</h1>")
-        textTemplateService.createContent("test.integration.foo", "text/xml", '<?xml version="1.0" encoding="UTF-8"?>\n<messages><msg>Hello World</msg></messages>')
-        textTemplateService.createContent("test.integration.foo", "application/json", '{"message" : "Hello World"}')
+        textTemplateService.createContent("test-integration-foo", "text/plain", "Hello World")
+        textTemplateService.createContent("test-integration-foo", "text/html", "<h1>Hello World</h1>")
+        textTemplateService.createContent("test-integration-foo", "text/xml", '<?xml version="1.0" encoding="UTF-8"?>\n<messages><msg>Hello World</msg></messages>')
+        textTemplateService.createContent("test-integration-foo", "application/json", '{"message" : "Hello World"}')
 
-        assert textTemplateService.text("test.integration.foo") == 'Hello World'
-        assert textTemplateService.html("test.integration.foo") == '<h1>Hello World</h1>'
-        assert textTemplateService.xml("test.integration.foo").msg[0] == 'Hello World'
-        assert textTemplateService.json("test.integration.foo").message == 'Hello World'
+        assert textTemplateService.text("test-integration-foo") == 'Hello World'
+        assert textTemplateService.html("test-integration-foo") == '<h1>Hello World</h1>'
+        assert textTemplateService.xml("test-integration-foo").msg[0] == 'Hello World'
+        assert textTemplateService.json("test-integration-foo").message == 'Hello World'
+    }
+
+    void testAnyType() {
+        textTemplateService.createContent("test-integration-any", "text/html", "<h1>Hello World</h1>")
+
+        assert textTemplateService.content("test-integration-any") == '<h1>Hello World</h1>'
+        assert textTemplateService.content("test-integration-any", "text/plain") == null
+
+        textTemplateService.createContent("test-integration-any", "text/plain", "Hello World")
+
+        assert textTemplateService.content("test-integration-any", "text/plain") == "Hello World"
+
+        // Multiple content gets concatenated
+        assert textTemplateService.content("test-integration-any") == '<h1>Hello World</h1>Hello World'
+
+        textTemplateService.deleteContent("test-integration-any", "text/html")
+
+        // Now we only have text/plain left.
+        assert textTemplateService.content("test-integration-any") == 'Hello World'
+
+        textTemplateService.deleteTemplate("test-integration-any")
+        // Now we don't have anything left.
+        assert textTemplateService.content("test-integration-any") == null
     }
 
     void testStatus() {
-        def NAME = "test.integration.foo"
+        def NAME = "test-integration-foo"
         textTemplateService.createContent(NAME, "text/plain", "Hello World")
         assert textTemplateService.text(NAME) == 'Hello World'
 
@@ -64,7 +87,7 @@ class TextTemplateServiceTests extends GroovyTestCase {
     }
 
     void testVisibility() {
-        def NAME = "test.integration.foo"
+        def NAME = "test-integration-foo"
         textTemplateService.createContent(NAME, "text/plain", "Hello World")
         assert textTemplateService.text(NAME) == 'Hello World'
 
@@ -82,25 +105,58 @@ class TextTemplateServiceTests extends GroovyTestCase {
     }
 
     void testListTemplates() {
-        textTemplateService.createContent("test.integration.first", "text/plain", "First")
-        textTemplateService.createContent("test.integration.second", "text/plain", "Second")
-        textTemplateService.createContent("test.integration.third", "text/plain", "Third")
-        textTemplateService.createContent("test.unit.simple", "text/plain", "Test")
+        textTemplateService.createContent("test-integration-first", "text/plain", "First")
+        textTemplateService.createContent("test-integration-second", "text/plain", "Second")
+        textTemplateService.createContent("test-integration-third", "text/plain", "Third")
+        textTemplateService.createContent("test-unit-simple", "text/plain", "Test")
 
-        def result = textTemplateService.getTemplateNames("test.integration")
+        def result = textTemplateService.getTemplateNames("test-integration")
         assert result.size() == 3
     }
 
     void testApplyTemplate() {
-        textTemplateService.createContent("test.integration.apply", "text/plain", "Hello \${arg}")
-        textTemplateService.createContent("test.integration.apply", "text/html", "<h1>Hello \${arg}</h1>")
-        assert textTemplateService.applyTemplate("test.integration.apply", "text/plain", [arg:"World!"]) == "Hello World!"
-        assert textTemplateService.applyTemplate("test.integration.apply", "text/html", [arg:"World!"]) == "<h1>Hello World!</h1>"
-        assert textTemplateService.applyTemplate("test.integration.apply", "text/xml", [arg:"World!"]) == ''
+        textTemplateService.createContent("test-integration-apply", "text/plain", "Hello \${arg}")
+        textTemplateService.createContent("test-integration-apply", "text/html", "<h1>Hello \${arg}</h1>")
+        assert textTemplateService.applyTemplate("test-integration-apply", "text/plain", [arg: "World!"]) == "Hello World!"
+        assert textTemplateService.applyTemplate("test-integration-apply", "text/html", [arg: "World!"]) == "<h1>Hello World!</h1>"
+        assert textTemplateService.applyTemplate("test-integration-apply", "text/xml", [arg: "World!"]) == ''
     }
 
     void testCreateLink() {
-        assert textTemplateService.createLink(controller:"foo", action:"bar", id:42, absolute:true) == "http://localhost/foo/bar/42"
-        assert textTemplateService.createLink(controller:"foo", action:"bar", id:42, absolute:false) == "/foo/bar/42"
+        assert textTemplateService.createLink(controller: "foo", action: "bar", id: 42, absolute: true) == "http://localhost/foo/bar/42"
+        assert textTemplateService.createLink(controller: "foo", action: "bar", id: 42, absolute: false) == "/foo/bar/42"
+    }
+
+    void testMultipleContent() {
+        textTemplateService.createContent("home.index.left", "text/html", "<h1>Welcome</h1>")
+        textTemplateService.createContent("home.index.middle", "text/html", "<h1>Our Products</h1>")
+        textTemplateService.createContent("home.index.right", "text/html", "<h1>Contact</h1>")
+        assert textTemplateService.getTemplateNames("home.index").size() == 1
+        assert textTemplateService.getContentNames("home.index").size() == 3
+        assert textTemplateService.html("home.index.right") == '<h1>Contact</h1>'
+    }
+
+    void testMultiTenancy() {
+        currentTenant.set(1)
+        textTemplateService.createContent("tenant", "text/plain", "Hello Tenant 1")
+        currentTenant.set(2)
+        textTemplateService.createContent("tenant", "text/plain", "Hello Tenant 2")
+        currentTenant.set(3)
+        textTemplateService.createContent("tenant", "text/plain", "Hello Tenant 3")
+
+        currentTenant.set(1)
+        assert textTemplateService.text("tenant") == "Hello Tenant 1"
+
+        currentTenant.set(2)
+        assert textTemplateService.text("tenant") == "Hello Tenant 2"
+
+        currentTenant.set(3)
+        assert textTemplateService.text("tenant") == "Hello Tenant 3"
+
+        currentTenant.set(9)
+        assert textTemplateService.text("tenant") == null
+
+        currentTenant.set(null)
+        assert textTemplateService.text("tenant") == null
     }
 }
