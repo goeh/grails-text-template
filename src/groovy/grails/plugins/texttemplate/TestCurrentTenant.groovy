@@ -17,16 +17,17 @@
 package grails.plugins.texttemplate
 
 /**
- * Dummy class that holds current tenant in integration tests.
+ * Basic implementation that stores the current tenant in a threadlocal variable.
  */
 class TestCurrentTenant {
-    def tenant
 
-    def get() {
-        tenant
+    private static final ThreadLocal<Integer> contextHolder = new ThreadLocal<Long>()
+
+    public Integer get() {
+        return contextHolder.get()
     }
 
-    def set(arg) {
-        tenant = arg
+    public void set(Integer tenant) {
+        contextHolder.set(tenant)
     }
 }

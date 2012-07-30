@@ -21,8 +21,6 @@ import org.codehaus.groovy.grails.web.mapping.LinkGenerator
 import org.springframework.web.context.support.WebApplicationContextUtils
 import org.codehaus.groovy.grails.web.context.ServletContextHolder
 import org.springframework.web.context.request.RequestContextHolder
-import grails.plugin.cache.CacheEvict
-import grails.plugin.cache.Cacheable
 
 class TextTemplateService {
 
@@ -54,7 +52,6 @@ class TextTemplateService {
         return idx == -1 ? [name, null] : [name.substring(0, idx), name.substring(idx + 1)]
     }
 
-    @Cacheable('textTemplate')
     String content(String name, String contentType = null, String language = null) {
         if (!name) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")
@@ -135,6 +132,7 @@ class TextTemplateService {
             } else {
                 isNull('tenantId')
             }
+            cache true
         }
     }
 
@@ -152,6 +150,7 @@ class TextTemplateService {
                     isNull('tenantId')
                 }
             }
+            cache true
         }
     }
 
@@ -167,10 +166,10 @@ class TextTemplateService {
             } else {
                 isNull('tenantId')
             }
+            cache true
         }
     }
 
-    @CacheEvict(value = 'textTemplate', allEntries = true)
     void setStatusDisabled(String name) {
         def tmpl = template(name)
         if (tmpl) {
@@ -180,7 +179,6 @@ class TextTemplateService {
         }
     }
 
-    @CacheEvict(value = 'textTemplate', allEntries = true)
     void setStatusDraft(String name) {
         def tmpl = template(name)
         if (tmpl) {
@@ -190,7 +188,7 @@ class TextTemplateService {
         }
     }
 
-    @CacheEvict(value = 'textTemplate', allEntries = true)
+
     void setStatusPublished(String name) {
         def tmpl = template(name)
         if (tmpl) {
@@ -200,7 +198,6 @@ class TextTemplateService {
         }
     }
 
-    @CacheEvict(value = 'textTemplate', allEntries = true)
     void setVisible(String name, Date visibleFrom, Date visibleTo) {
         def tmpl = template(name)
         if (tmpl) {
@@ -211,7 +208,6 @@ class TextTemplateService {
         }
     }
 
-    @CacheEvict(value = 'textTemplate', allEntries = true)
     def createContent(String name, String contentType, String text, String language = null) {
         if (name == null) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")
@@ -257,7 +253,6 @@ class TextTemplateService {
         return textContent
     }
 
-    @CacheEvict(value = 'textTemplate', allEntries = true)
     boolean deleteTemplate(String name) {
         if (name == null) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")
@@ -279,7 +274,6 @@ class TextTemplateService {
         return false
     }
 
-    @CacheEvict(value = 'textTemplate', allEntries = true)
     boolean deleteContent(String name, String contentType, String language = null) {
         if (name == null) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")

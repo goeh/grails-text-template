@@ -99,11 +99,11 @@
             <div class="row-fluid">
                 <f:with bean="${textContent}">
                     <div class="span4">
-                        <f:field property="name" prefix="textContent." input-class="span2"/>
+                        <f:field property="name" prefix="textContent." input-class="span3"/>
                     </div>
 
                     <div class="span4">
-                        <f:field property="contentType" prefix="textContent." input-class="span2"/>
+                        <f:field property="contentType" prefix="textContent." input-class="span3"/>
                     </div>
 
                     <div class="span4">
@@ -120,15 +120,17 @@
         </div>
 
         <div class="span2">
-            <ul class="nav nav-list">
-                <li class="nav-header">Template Content</li>
+            <ul id="textContent-list" class="nav nav-list">
+                <li class="nav-header"><g:message code="textTemplate.content.label" default="Template Content"/></li>
                 <g:each in="${textTemplate.content}" var="content">
-                    <li><g:link action="edit" params="${[id:textTemplate.id, content:content.id]}">
-                        ${content.name?.encodeAsHTML()}
-                        <g:if test="${content.language}">
-                            (${content.language.encodeAsHTML()})
-                        </g:if>
-                    </g:link></li>
+                    <li class="${content.id == textContent?.id ? 'active' : ''}">
+                        <g:link action="edit" params="${[id:textTemplate.id, content:content.id]}">
+                            ${content.name?.encodeAsHTML()}
+                            <g:if test="${content.language}">
+                                (${content.language.encodeAsHTML()})
+                            </g:if>
+                        </g:link>
+                    </li>
                 </g:each>
             </ul>
 
@@ -144,7 +146,7 @@
                 </g:link>
                 <g:if test="${textTemplate?.id}">
                     <button type="submit" name="_action_deleteTemplate" class="btn btn-danger"
-                            onclick="return confirm('${message(code:'textTemplate.button.delete.confirm.message', default:'Are you sure you want to delete the template and all its content?')}')">
+                            onclick="return confirm('${message(code:'textTemplate.button.delete.confirm.message', default:'Are you sure you want to delete the template and all its content?', args:[textTemplate.name])}')">
                         <i class="icon-trash icon-white"></i>
                         <g:message code="textTemplate.button.delete.label" default="Delete Template"/>
                     </button>
@@ -166,7 +168,7 @@
                 </g:link>
                 <g:if test="${textContent?.id}">
                     <button type="submit" name="_action_deleteContent" class="btn btn-danger"
-                            onclick="return confirm('${message(code:'textContent.button.delete.confirm.message', default:'Are you sure you want to delete this content?')}')">
+                            onclick="return confirm('${message(code:'textContent.button.delete.confirm.message', default:'Are you sure you want to delete this content?', args:[textContent.name])}')">
                         <i class="icon-trash icon-white"></i>
                         <g:message code="textContent.button.delete.label" default="Delete Content"/>
                     </button>
@@ -175,7 +177,12 @@
         </div>
 
         <div class="span2">
-        <p>&nbsp;</p>
+            <div class="form-actions">
+                <g:link action="list" class="btn">
+                    <i class="icon-list-alt"></i>
+                    <g:message code="textTemplate.button.list.label" default="Templates"/>
+                </g:link>
+            </div>
         </div>
     </div>
 

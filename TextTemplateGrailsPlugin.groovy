@@ -15,12 +15,11 @@
  */
 
 class TextTemplateGrailsPlugin {
-    def version = "0.7.5"
+    def version = "0.8.0"
     def grailsVersion = "2.0 > *"
     def dependsOn = [:]
     def pluginExcludes = [
         "grails-app/views/error.gsp",
-        "grails-app/views/layouts/main.gsp",
         "src/groovy/grails/plugins/texttemplate/TestCurrentTenant.groovy"
     ]
     def title = "Text Template Plugin"
