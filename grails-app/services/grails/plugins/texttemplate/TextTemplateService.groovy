@@ -24,6 +24,7 @@ import org.springframework.web.context.request.RequestContextHolder
 
 class TextTemplateService {
 
+    def grailsApplication
     def groovyPagesTemplateEngine
     def currentTenant
 
@@ -62,7 +63,28 @@ class TextTemplateService {
         }
         def tenant = currentTenant?.get()
         def now = new Date()
-        def result = TextContent.createCriteria().list {
+        def result = findContent(tenant, templateName, contentName, contentType, language, now)
+        if(! result) {
+            def defaultTenant = grailsApplication.config.textTemplate.defaultTenant
+            if(defaultTenant && defaultTenant != tenant) {
+                result = findContent(defaultTenant, templateName, contentName, contentType, language, now)
+            }
+        }
+        if (result) {
+            def s = new StringBuilder()
+            for (c in result) {
+                def text = c.text
+                if (text) {
+                    s << text
+                }
+            }
+            return s.toString()
+        }
+        return null // Returning null means template was not found
+    }
+
+    private List findContent(Number tenant, String templateName, String contentName, String contentType, String language, Date now) {
+        TextContent.createCriteria().list {
             template {
                 eq('status', TextTemplate.STATUS_PUBLISHED)
                 eq('name', templateName)
@@ -93,17 +115,6 @@ class TextTemplateService {
             }
             cache true
         }
-        if (result) {
-            def s = new StringBuilder()
-            for (c in result) {
-                def text = c.text
-                if (text) {
-                    s << text
-                }
-            }
-            return s.toString()
-        }
-        return null // Returning null means template was not found
     }
 
     private String wildcard(String q) {

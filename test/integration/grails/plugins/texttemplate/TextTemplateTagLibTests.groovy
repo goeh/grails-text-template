@@ -8,6 +8,7 @@ import grails.test.GroovyPagesTestCase
  */
 class TextTemplateTagLibTests extends GroovyPagesTestCase {
 
+    def grailsApplication
     def textTemplateService
     def currentTenant
 
@@ -105,16 +106,20 @@ class TextTemplateTagLibTests extends GroovyPagesTestCase {
         currentTenant.set(3)
         assert applyTemplate('<tt:content name="tenant">FOO</tt:content>') == "Hello Tenant 3"
 
+        grailsApplication.config.textTemplate.defaultTenant = 1
+
+        currentTenant.set(9)
+        assert applyTemplate('<tt:content name="tenant">FOO</tt:content>') == "Hello Tenant 1"
+
+        currentTenant.set(null)
+        assert applyTemplate('<tt:content name="tenant">FOO</tt:content>') == "Hello Tenant 1"
+
+        grailsApplication.config.textTemplate.defaultTenant = null
+
         currentTenant.set(9)
         assert applyTemplate('<tt:content name="tenant">FOO</tt:content>') == "FOO"
 
         currentTenant.set(null)
         assert applyTemplate('<tt:content name="tenant">FOO</tt:content>') == "FOO"
-
-        currentTenant.set(1)
-        assert applyTemplate('<tt:content name="tenant" tenant="2">FOO</tt:content>') == "Hello Tenant 2"
-        assert applyTemplate('<tt:content name="tenant" tenant="\${3}">FOO</tt:content>') == "Hello Tenant 3"
-        assert applyTemplate('<tt:content name="tenant" tenant="">FOO</tt:content>') == "FOO"
-        assert currentTenant.get() == 1
     }
 }

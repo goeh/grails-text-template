@@ -34,3 +34,5 @@ grails.cache.config = {
       maxElementsOnDisk 1000
    }
 }
+
+textTemplate.defaultTenant = 1

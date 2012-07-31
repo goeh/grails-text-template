@@ -23,86 +23,53 @@ class TextTemplateTagLib {
 
     def textTemplateService
     def groovyPagesTemplateEngine
-    def currentTenant
 
     def text = {attrs, body ->
-        def bak = currentTenant.get()
-        try {
-            if (attrs.tenant != null) {
-                currentTenant.set(attrs.int('tenant'))
-            }
-            def s = textTemplateService.text(attrs.name, attrs.lang)
-            if (s) {
-                if (attrs.raw) {
-                    out << s
-                } else {
-                    groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-text").make(pageScope.variables).writeTo(out)
-                }
+        def s = textTemplateService.text(attrs.name, attrs.lang)
+        if (s) {
+            if (attrs.raw) {
+                out << s
             } else {
-                out << body()
+                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-text").make(pageScope.variables).writeTo(out)
             }
-        } finally {
-            currentTenant.set(bak)
+        } else {
+            out << body()
         }
     }
 
     def html = {attrs, body ->
-        def bak = currentTenant.get()
-        try {
-            if (attrs.tenant != null) {
-                currentTenant.set(attrs.int('tenant'))
-            }
-            def s = textTemplateService.html(attrs.name, attrs.lang)
-            if (s) {
-                if (attrs.raw) {
-                    out << s
-                } else {
-                    groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-html").make(pageScope.variables).writeTo(out)
-                }
+        def s = textTemplateService.html(attrs.name, attrs.lang)
+        if (s) {
+            if (attrs.raw) {
+                out << s
             } else {
-                out << body()
+                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-html").make(pageScope.variables).writeTo(out)
             }
-        } finally {
-            currentTenant.set(bak)
+        } else {
+            out << body()
         }
     }
 
     def content = {attrs, body ->
-        def bak = currentTenant.get()
-        try {
-            if (attrs.tenant != null) {
-                currentTenant.set(attrs.int('tenant'))
-            }
-            def s = textTemplateService.content(attrs.name, attrs.contentType, attrs.lang)
-            if (s) {
-                if (attrs.raw) {
-                    out << s
-                } else {
-                    groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}").make(pageScope.variables).writeTo(out)
-                }
+        def s = textTemplateService.content(attrs.name, attrs.contentType, attrs.lang)
+        if (s) {
+            if (attrs.raw) {
+                out << s
             } else {
-                out << body()
+                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}").make(pageScope.variables).writeTo(out)
             }
-        } finally {
-            currentTenant.set(bak)
+        } else {
+            out << body()
         }
     }
 
     def eachTemplate = {attrs, body ->
-        def bak = currentTenant.get()
-        try {
-            if (attrs.tenant != null) {
-                currentTenant.set(attrs.int('tenant'))
-            }
-            def names = textTemplateService.getTemplateNames(attrs.name)
-            for (name in names) {
-                def t = textTemplateService.template(name)
-                def map = [name: t.name, status: t.status, visibleFrom: t.visibleFrom, visibleTo: t.visibleTo, master: t.master?.name]
-                map.content = t.content?.collect {[name: it.name, contentType: it.contentType, language: it.language]}
-                out << body(map)
-            }
-        } finally {
-            currentTenant.set(bak)
+        def names = textTemplateService.getTemplateNames(attrs.name)
+        for (name in names) {
+            def t = textTemplateService.template(name)
+            def map = [name: t.name, status: t.status, visibleFrom: t.visibleFrom, visibleTo: t.visibleTo, master: t.master?.name]
+            map.content = t.content?.collect {[name: it.name, contentType: it.contentType, language: it.language]}
+            out << body(map)
         }
     }
 }

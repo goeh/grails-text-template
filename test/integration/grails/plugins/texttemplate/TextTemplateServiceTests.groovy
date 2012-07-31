@@ -153,6 +153,17 @@ class TextTemplateServiceTests extends GroovyTestCase {
         currentTenant.set(3)
         assert textTemplateService.text("tenant") == "Hello Tenant 3"
 
+        grailsApplication.config.textTemplate.defaultTenant = 1
+
+        currentTenant.set(9)
+        assert textTemplateService.text("tenant") == "Hello Tenant 1"
+
+        currentTenant.set(null)
+        assert textTemplateService.text("tenant") == "Hello Tenant 1"
+
+
+        grailsApplication.config.textTemplate.defaultTenant = null
+
         currentTenant.set(9)
         assert textTemplateService.text("tenant") == null
 
