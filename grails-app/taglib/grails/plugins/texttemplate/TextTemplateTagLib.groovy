@@ -17,61 +17,92 @@
 
 package grails.plugins.texttemplate
 
-import org.apache.commons.lang.StringUtils
-
 class TextTemplateTagLib {
 
     static namespace = "tt"
 
     def textTemplateService
     def groovyPagesTemplateEngine
+    def currentTenant
 
     def text = {attrs, body ->
-        def s = textTemplateService.text(attrs.name, attrs.lang)
-        if(s) {
-            if(attrs.raw) {
-                out << s
-            } else {
-                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-text").make(pageScope.variables).writeTo(out)
+        def bak = currentTenant.get()
+        try {
+            if (attrs.tenant != null) {
+                currentTenant.set(attrs.int('tenant'))
             }
-        } else {
-            out << body()
+            def s = textTemplateService.text(attrs.name, attrs.lang)
+            if (s) {
+                if (attrs.raw) {
+                    out << s
+                } else {
+                    groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-text").make(pageScope.variables).writeTo(out)
+                }
+            } else {
+                out << body()
+            }
+        } finally {
+            currentTenant.set(bak)
         }
     }
 
     def html = {attrs, body ->
-        def s = textTemplateService.html(attrs.name, attrs.lang)
-        if(s) {
-            if(attrs.raw) {
-                out << s
-            } else {
-                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-html").make(pageScope.variables).writeTo(out)
+        def bak = currentTenant.get()
+        try {
+            if (attrs.tenant != null) {
+                currentTenant.set(attrs.int('tenant'))
             }
-        } else {
-            out << body()
+            def s = textTemplateService.html(attrs.name, attrs.lang)
+            if (s) {
+                if (attrs.raw) {
+                    out << s
+                } else {
+                    groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-html").make(pageScope.variables).writeTo(out)
+                }
+            } else {
+                out << body()
+            }
+        } finally {
+            currentTenant.set(bak)
         }
     }
 
     def content = {attrs, body ->
-        def s = textTemplateService.content(attrs.name, attrs.contentType, attrs.lang)
-        if(s) {
-            if(attrs.raw) {
-                out << s
-            } else {
-                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}").make(pageScope.variables).writeTo(out)
+        def bak = currentTenant.get()
+        try {
+            if (attrs.tenant != null) {
+                currentTenant.set(attrs.int('tenant'))
             }
-        } else {
-            out << body()
+            def s = textTemplateService.content(attrs.name, attrs.contentType, attrs.lang)
+            if (s) {
+                if (attrs.raw) {
+                    out << s
+                } else {
+                    groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}").make(pageScope.variables).writeTo(out)
+                }
+            } else {
+                out << body()
+            }
+        } finally {
+            currentTenant.set(bak)
         }
     }
 
     def eachTemplate = {attrs, body ->
-        def names = textTemplateService.getTemplateNames(attrs.name)
-        for(name in names) {
-            def t = textTemplateService.template(name)
-            def map = [name:t.name, status:t.status, visibleFrom:t.visibleFrom, visibleTo:t.visibleTo, master:t.master?.name]
-            map.content = t.content?.collect{[name:it.name, contentType:it.contentType, language: it.language]}
-            out << body(map)
+        def bak = currentTenant.get()
+        try {
+            if (attrs.tenant != null) {
+                currentTenant.set(attrs.int('tenant'))
+            }
+            def names = textTemplateService.getTemplateNames(attrs.name)
+            for (name in names) {
+                def t = textTemplateService.template(name)
+                def map = [name: t.name, status: t.status, visibleFrom: t.visibleFrom, visibleTo: t.visibleTo, master: t.master?.name]
+                map.content = t.content?.collect {[name: it.name, contentType: it.contentType, language: it.language]}
+                out << body(map)
+            }
+        } finally {
+            currentTenant.set(bak)
         }
     }
 }

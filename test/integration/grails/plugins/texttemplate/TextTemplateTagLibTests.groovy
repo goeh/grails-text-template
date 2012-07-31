@@ -4,11 +4,17 @@ package grails.plugins.texttemplate
 import grails.test.GroovyPagesTestCase
 
 /**
- * Test the SelectionRepoTagLib.
+ * Test the TextTemplateTagLib.
  */
 class TextTemplateTagLibTests extends GroovyPagesTestCase {
 
     def textTemplateService
+    def currentTenant
+
+    protected void setUp() {
+        super.setUp()
+        currentTenant.set(null)
+    }
 
     void testTextTag() {
         textTemplateService.createContent("test-integration-hello", "text/plain", "Hello World")
@@ -80,5 +86,35 @@ class TextTemplateTagLibTests extends GroovyPagesTestCase {
         textTemplateService.createContent("test-integration.third", "text/plain", "Third")
 
         assert applyTemplate('<tt:content name="test-integration">FOO</tt:content>') == 'FirstSecondThird'
+    }
+
+    void testMultiTenancy() {
+        currentTenant.set(1)
+        textTemplateService.createContent("tenant", "text/plain", "Hello Tenant 1")
+        currentTenant.set(2)
+        textTemplateService.createContent("tenant", "text/plain", "Hello Tenant 2")
+        currentTenant.set(3)
+        textTemplateService.createContent("tenant", "text/plain", "Hello Tenant 3")
+
+        currentTenant.set(1)
+        assert applyTemplate('<tt:content name="tenant">FOO</tt:content>') == "Hello Tenant 1"
+
+        currentTenant.set(2)
+        assert applyTemplate('<tt:content name="tenant">FOO</tt:content>') == "Hello Tenant 2"
+
+        currentTenant.set(3)
+        assert applyTemplate('<tt:content name="tenant">FOO</tt:content>') == "Hello Tenant 3"
+
+        currentTenant.set(9)
+        assert applyTemplate('<tt:content name="tenant">FOO</tt:content>') == "FOO"
+
+        currentTenant.set(null)
+        assert applyTemplate('<tt:content name="tenant">FOO</tt:content>') == "FOO"
+
+        currentTenant.set(1)
+        assert applyTemplate('<tt:content name="tenant" tenant="2">FOO</tt:content>') == "Hello Tenant 2"
+        assert applyTemplate('<tt:content name="tenant" tenant="\${3}">FOO</tt:content>') == "Hello Tenant 3"
+        assert applyTemplate('<tt:content name="tenant" tenant="">FOO</tt:content>') == "FOO"
+        assert currentTenant.get() == 1
     }
 }
