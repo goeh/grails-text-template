@@ -21,6 +21,9 @@ import org.codehaus.groovy.grails.web.mapping.LinkGenerator
 import org.springframework.web.context.support.WebApplicationContextUtils
 import org.codehaus.groovy.grails.web.context.ServletContextHolder
 import org.springframework.web.context.request.RequestContextHolder
+import org.apache.commons.io.FilenameUtils
+import org.apache.commons.lang.StringUtils
+import javax.activation.MimetypesFileTypeMap
 
 class TextTemplateService {
 
@@ -29,6 +32,7 @@ class TextTemplateService {
     def currentTenant
 
     LinkGenerator grailsLinkGenerator
+    MimetypesFileTypeMap mimetypesFileTypeMap
 
     String text(String name, String language = null) {
         content(name, 'text/plain', language)
@@ -64,9 +68,9 @@ class TextTemplateService {
         def tenant = currentTenant?.get()
         def now = new Date()
         def result = findContent(tenant, templateName, contentName, contentType, language, now)
-        if(! result) {
+        if (!result) {
             def defaultTenant = grailsApplication.config.textTemplate.defaultTenant
-            if(defaultTenant && defaultTenant != tenant) {
+            if (defaultTenant && defaultTenant != tenant) {
                 result = findContent(defaultTenant, templateName, contentName, contentType, language, now)
             }
         }
@@ -185,6 +189,7 @@ class TextTemplateService {
         def tmpl = template(name)
         if (tmpl) {
             tmpl.status = TextTemplate.STATUS_DISABLED
+            log.debug "Disabled template [$name]"
         } else {
             throw new IllegalArgumentException("Template not found: $name")
         }
@@ -204,6 +209,7 @@ class TextTemplateService {
         def tmpl = template(name)
         if (tmpl) {
             tmpl.status = TextTemplate.STATUS_PUBLISHED
+            log.debug "Published template [$name]"
         } else {
             throw new IllegalArgumentException("Template not found: $name")
         }
@@ -261,6 +267,7 @@ class TextTemplateService {
         }
 
         textTemplate.save(failOnError: true)
+        log.debug("Created/updated text template [$name]")
         return textContent
     }
 
@@ -280,6 +287,7 @@ class TextTemplateService {
         }
         if (textTemplate) {
             textTemplate.delete()
+            log.debug("Deleted text template [$name]")
             return true
         }
         return false
@@ -321,6 +329,7 @@ class TextTemplateService {
         for (textContent in result) {
             textTemplate.removeFromContent(textContent)
             textContent.delete()
+            log.debug("Deleted text content [$name] contentType=$contentType language=$language")
         }
         return !result.isEmpty()
     }
@@ -368,5 +377,58 @@ class TextTemplateService {
      */
     String createLink(Map params) {
         grailsLinkGenerator.link(params)
+    }
+
+    void addContentFromFile(File file) {
+        def dir = file.parent
+        def filename = file.name
+        def ext = FilenameUtils.getExtension(filename)
+        def language = StringUtils.substringAfterLast(dir, File.pathSeparator)
+        def config = grailsApplication.config.textTemplate
+        def contentType = config.contentType[ext]
+        if (!contentType) {
+            if (!mimetypesFileTypeMap) {
+                mimetypesFileTypeMap = new MimetypesFileTypeMap()
+                // Strangely text/xml and application/json is not included in JDK6 mime_types
+                mimetypesFileTypeMap.addMimeTypes("text/xml xml")
+                mimetypesFileTypeMap.addMimeTypes("application/json json")
+            }
+            contentType = mimetypesFileTypeMap.getContentType(file)
+        }
+        def (templateName, contentName) = getNamePair(filename)
+        def tenant = config.defaultTenant
+        def prevTenant = currentTenant.get()
+        try {
+            if (tenant) {
+                currentTenant.set(tenant)
+            }
+            def exists = TextContent.createCriteria().count {
+                template {
+                    eq('name', templateName)
+                    if (tenant != null) {
+                        eq('tenantId', tenant)
+                    } else {
+                        isNull('tenantId')
+                    }
+                }
+                if (contentName) {
+                    eq('name', contentName)
+                }
+                if (contentType) {
+                    eq('contentType', contentType)
+                }
+                if (language) {
+                    eq('language', language)
+                } else {
+                    isNull('language')
+                }
+                cache true
+            }
+            if (!exists) {
+                createContent(filename, contentType, file.text, language)
+            }
+        } finally {
+            currentTenant.set(prevTenant)
+        }
     }
 }

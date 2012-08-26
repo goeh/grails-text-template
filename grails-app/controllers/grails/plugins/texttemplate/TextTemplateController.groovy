@@ -28,7 +28,7 @@ class TextTemplateController {
     static navigation = [
             [group: 'admin',
                     order: 930,
-                    title: 'textTemplate.label',
+                    title: 'textTemplate.list.label',
                     action: 'index'
             ],
             [group: 'textTemplate',

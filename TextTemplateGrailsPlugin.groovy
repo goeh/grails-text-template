@@ -15,12 +15,13 @@
  */
 
 class TextTemplateGrailsPlugin {
-    def version = "0.8.0"
+    def version = "1.0-SNAPSHOT"
     def grailsVersion = "2.0 > *"
     def dependsOn = [:]
     def pluginExcludes = [
-        "grails-app/views/error.gsp",
-        "src/groovy/grails/plugins/texttemplate/TestCurrentTenant.groovy"
+            "grails-app/views/error.gsp",
+            "src/groovy/grails/plugins/texttemplate/TestCurrentTenant.groovy",
+            "src/templates/text/**/*"
     ]
     def title = "Text Template Plugin"
     def author = "Goran Ehrsson"
@@ -33,7 +34,33 @@ An administration UI is provided where administrators can create and edit text t
 '''
     def documentation = "http://grails.org/plugin/text-template"
     def license = "APACHE"
-    def organization = [ name: "Technipelago AB", url: "http://www.technipelago.se/" ]
-    def issueManagement = [ system: "github", url: "https://github.com/goeh/grails-text-template/issues" ]
-    def scm = [ url: "https://github.com/goeh/grails-text-template" ]
+    def organization = [name: "Technipelago AB", url: "http://www.technipelago.se/"]
+    def issueManagement = [system: "github", url: "https://github.com/goeh/grails-text-template/issues"]
+    def scm = [url: "https://github.com/goeh/grails-text-template"]
+
+    String watchedResources = "file:./src/templates/text/**/*.*".toString()
+
+    def doWithApplicationContext = { applicationContext ->
+        def templates
+        if (application.warDeployed) {
+            templates = applicationContext.getResources("**/WEB-INF/templates/text/**/*.*")?.toList()
+        } else {
+            templates = plugin.watchedResources
+        }
+
+        if (templates) {
+            def textTemplateService = applicationContext.getBean("textTemplateService")
+            for (resource in templates) {
+                textTemplateService.addContentFromFile(resource.file)
+            }
+        }
+    }
+
+    def onChange = { event ->
+        def context = event.ctx
+        if (!context) {
+            log.debug("Application context not found. Can't reload")
+            return
+        }
+    }
 }

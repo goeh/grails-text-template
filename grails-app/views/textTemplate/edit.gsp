@@ -77,18 +77,18 @@
         <div class="span2">
 
             <f:with bean="${textTemplate}">
-                <f:field property="name" input-class="span2"/>
-                <f:field property="master" input-class="span2"/>
+                <f:field property="name" input-class="span12"/>
+                <f:field property="master" input-class="span12"/>
                 <f:field property="status">
                     <g:select name="status" from="${TextTemplate.STATUSES}" value="${textTemplate.status}"
-                              valueMessagePrefix="textTemplate.status" class="span2"/>
+                              valueMessagePrefix="textTemplate.status" class="span12"/>
                 </f:field>
                 <f:field property="visibleFrom">
-                    <g:textField name="visibleFrom" class="span2"
+                    <g:textField name="visibleFrom" class="span12 date"
                                  value="${formatDate(type:'date', date:textTemplate.visibleFrom)}"/>
                 </f:field>
                 <f:field property="visibleTo">
-                    <g:textField name="visibleTo" class="span2"
+                    <g:textField name="visibleTo" class="span12 date"
                                  value="${formatDate(type:'date', date:textTemplate.visibleTo)}"/>
                 </f:field>
             </f:with>
@@ -99,15 +99,15 @@
             <div class="row-fluid">
                 <f:with bean="${textContent}">
                     <div class="span4">
-                        <f:field property="name" prefix="textContent." input-class="span3"/>
+                        <f:field property="name" prefix="textContent." input-class="span12"/>
                     </div>
 
                     <div class="span4">
-                        <f:field property="contentType" prefix="textContent." input-class="span3"/>
+                        <f:field property="contentType" prefix="textContent." input-class="span12"/>
                     </div>
 
                     <div class="span4">
-                        <f:field property="language" prefix="textContent." input-class="span2"/>
+                        <f:field property="language" prefix="textContent." input-class="span12"/>
                     </div>
                 </f:with>
             </div>

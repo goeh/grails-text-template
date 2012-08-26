@@ -43,9 +43,18 @@ class TextTemplateTagLib {
             if (attrs.raw) {
                 out << s
             } else {
+                if (params.ttDebug) {
+                    out << "\n<!-- TEMPLATE ${attrs.name} START -->\n"
+                }
                 groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-html").make(pageScope.variables).writeTo(out)
+                if (params.ttDebug) {
+                    out << "\n<!-- TEMPLATE ${attrs.name} END -->\n"
+                }
             }
         } else {
+            if (params.ttDebug) {
+                out << "\n<!-- TEMPLATE ${attrs.name} NOT FOUND -->\n"
+            }
             out << body()
         }
     }
