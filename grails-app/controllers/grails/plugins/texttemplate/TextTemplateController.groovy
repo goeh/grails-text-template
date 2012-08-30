@@ -59,21 +59,27 @@ class TextTemplateController {
         [templateList: result]
     }
 
+    def create() {
+        redirect(action:'edit', params:[id:params.id, add:true])
+    }
+
     def edit() {
         def tenant = currentTenant?.get()
         def textTemplate
+        def textContent
         if (params.id) {
             textTemplate = TextTemplate.findByIdAndTenantId(params.id, tenant)
-            if (!textTemplate) {
+            if (textTemplate) {
+                textContent = textTemplate.content?.find{it}
+            } else {
                 flash.error = message(code: 'textTemplate.not.found.message', args: [message(code: 'textTemplate.label', default: 'Template'), params.id])
                 redirect action: 'list'
                 return
             }
         } else {
-            textTemplate = new TextTemplate(tenantId:tenant)
+            textTemplate = new TextTemplate(tenantId: tenant)
         }
 
-        def textContent
         if (params.content) {
             textContent = TextContent.get(params.content)
             if (textContent == null || textContent.template != textTemplate) {
@@ -81,26 +87,29 @@ class TextTemplateController {
                 redirect action: 'edit', id: params.id
                 return
             }
-        } else {
-            textContent = new TextContent(template:textTemplate)
         }
-
-        bindData(textTemplate, params, [include: ['name', 'status', 'visibleFrom', 'visibleTo', 'master']])
-        bindData(textContent, params, [include: ['name', 'language', 'contentType', 'text']], 'textContent')
 
         switch (request.method) {
             case 'GET':
+                if(params.boolean('add') || ! textContent) {
+                    textContent = new TextContent(template: textTemplate)
+                }
                 return [textTemplate: textTemplate, textContent: textContent]
             case 'POST':
 
-                if (!textContent.id) {
+                bindData(textTemplate, params, [include: ['name', 'status', 'visibleFrom', 'visibleTo', 'master']])
+
+                if(! params.content) {
+                    textContent = new TextContent(template: textTemplate)
                     textTemplate.addToContent(textContent)
                 }
+
+                bindData(textContent, params, [include: ['name', 'language', 'contentType', 'text']], 'textContent')
 
                 if (textTemplate.validate() && textContent.validate()) {
                     textTemplate.save(failOnError: true, flush: true)
                     flash.success = message(code: 'textTemplate.updated.message', args: [message(code: 'textTemplate.label', default: 'Template'), textTemplate.toString()])
-                    redirect action:"edit", id:textTemplate.id
+                    redirect action: "edit", id: textTemplate.id
                 } else {
                     render view: 'edit', model: [textTemplate: textTemplate, textContent: textContent]
                     return
@@ -141,7 +150,7 @@ class TextTemplateController {
         def textContent = TextContent.get(content)
         if (textContent == null || textContent.template != textTemplate) {
             flash.error = message(code: 'textTemplate.not.found.message', args: [message(code: 'textTemplate.label', default: 'Template'), content])
-            redirect action: 'edit', id:id
+            redirect action: 'edit', id: id
             return
         }
 
@@ -151,11 +160,11 @@ class TextTemplateController {
             textContent.delete(flush: true)
             textTemplate.save()
             flash.warning = message(code: 'textTemplate.deleted.message', args: [message(code: 'textTemplate.label', default: 'Template'), tombstone])
-            redirect action: 'edit', id:id
+            redirect action: 'edit', id: id
         }
         catch (DataIntegrityViolationException e) {
             flash.error = message(code: 'textTemplate.not.deleted.message', args: [message(code: 'textTemplate.label', default: 'Template'), id])
-            redirect action: 'edit', params: [id:id, content:content]
+            redirect action: 'edit', params: [id: id, content: content]
         }
     }
 }

@@ -44,7 +44,7 @@ class TextTemplateTagLib {
                 out << s
             } else {
                 if (params.ttDebug) {
-                    out << "\n<!-- TEMPLATE ${attrs.name} START -->\n"
+                    out << "\n<!-- TEMPLATE ${attrs.name} START -->\n<span style=\"font-size:8px;\" title=\"${attrs.name}\">#</span>\n"
                 }
                 groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-html").make(pageScope.variables).writeTo(out)
                 if (params.ttDebug) {

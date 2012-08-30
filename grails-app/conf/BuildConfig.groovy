@@ -29,7 +29,7 @@ grails.project.dependency.resolution = {
         runtime ":resources:1.2-RC1"
         runtime ":fields:1.3"
         runtime ":jquery:1.8.0"
-        runtime ":ckeditor:latest.integration"
+        runtime ":ckeditor:3.6.3.0"
         runtime(":twitter-bootstrap:latest.integration") {
             excludes 'resources'
         }
