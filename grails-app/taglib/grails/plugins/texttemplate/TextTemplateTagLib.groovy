@@ -24,19 +24,34 @@ class TextTemplateTagLib {
     def textTemplateService
     def groovyPagesTemplateEngine
 
+    /**
+     * Render text/plain content of a text template.
+     * @attr name REQUIRED name of template
+     * @attr lang preferred content language
+     * @attr raw set to true to render the content un-parsed, default it will be parsed with GroovyPagesTemplateEngine
+     * @attr model optional model sent to the template engine along with pageScope
+     */
     def text = {attrs, body ->
         def s = textTemplateService.text(attrs.name, attrs.lang)
         if (s) {
             if (attrs.raw) {
                 out << s
             } else {
-                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-text").make(pageScope.variables).writeTo(out)
+                def model = attrs.model ?: [:]
+                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-text").make(pageScope.variables + model).writeTo(out)
             }
         } else {
             out << body()
         }
     }
 
+    /**
+     * Render text/html content of a text template.
+     * @attr name REQUIRED name of template
+     * @attr lang preferred content language
+     * @attr raw set to true to render the content un-parsed, default it will be parsed with GroovyPagesTemplateEngine
+     * @attr model optional model sent to the template engine along with pageScope
+     */
     def html = {attrs, body ->
         def s = textTemplateService.html(attrs.name, attrs.lang)
         if (s) {
@@ -46,7 +61,8 @@ class TextTemplateTagLib {
                 if (params.ttDebug) {
                     out << "\n<!-- TEMPLATE ${attrs.name} START -->\n<span style=\"font-size:8px;\" title=\"${attrs.name}\">#</span>\n"
                 }
-                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-html").make(pageScope.variables).writeTo(out)
+                def model = attrs.model ?: [:]
+                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}-html").make(pageScope.variables + model).writeTo(out)
                 if (params.ttDebug) {
                     out << "\n<!-- TEMPLATE ${attrs.name} END -->\n"
                 }
@@ -59,13 +75,22 @@ class TextTemplateTagLib {
         }
     }
 
+    /**
+     * Render content of a text template.
+     * @attr name REQUIRED name of template
+     * @attr contentType REQUIRED MIME content type
+     * @attr lang preferred content language
+     * @attr raw set to true to render the content un-parsed, default it will be parsed with GroovyPagesTemplateEngine
+     * @attr model optional model sent to the template engine along with pageScope
+     */
     def content = {attrs, body ->
         def s = textTemplateService.content(attrs.name, attrs.contentType, attrs.lang)
         if (s) {
             if (attrs.raw) {
                 out << s
             } else {
-                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}").make(pageScope.variables).writeTo(out)
+                def model = attrs.model ?: [:]
+                groovyPagesTemplateEngine.createTemplate(s, "${attrs.name}").make(pageScope.variables + model).writeTo(out)
             }
         } else {
             out << body()

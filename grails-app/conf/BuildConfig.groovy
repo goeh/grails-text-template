@@ -26,7 +26,7 @@ grails.project.dependency.resolution = {
         runtime(":hibernate:$grailsVersion") {
             export = false
         }
-        runtime ":resources:1.2-RC1"
+        runtime ":resources:1.2.RC2"
         runtime ":fields:1.3"
         runtime ":jquery:1.8.0"
         runtime ":ckeditor:3.6.3.0"
