@@ -41,6 +41,8 @@
     </tbody>
 </table>
 
+<g:paginate total="${totalCount}"/>
+
 <div class="form-actions">
     <g:link action="edit" class="btn btn-success">
         <i class="icon-plus icon-white"></i>

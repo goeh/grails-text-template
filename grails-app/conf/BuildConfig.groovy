@@ -12,6 +12,7 @@ grails.project.dependency.resolution = {
     }
     log "warn"
     repositories {
+        grailsHome()
         grailsCentral()
         //mavenCentral()
         //mavenLocal()
@@ -28,9 +29,9 @@ grails.project.dependency.resolution = {
         }
         runtime ":resources:1.2.RC2"
         runtime ":fields:1.3"
-        runtime ":jquery:1.8.0"
+        runtime ":jquery:1.8.3"
         runtime ":ckeditor:3.6.3.0"
-        runtime(":twitter-bootstrap:latest.integration") {
+        runtime(":twitter-bootstrap:2.2.1") {
             excludes 'resources'
         }
     }

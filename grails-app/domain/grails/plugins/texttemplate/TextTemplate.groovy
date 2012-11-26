@@ -45,6 +45,7 @@ class TextTemplate {
     }
 
     static mapping = {
+        sort 'name'
         content cascade: 'all', sort: 'name'
     }
 

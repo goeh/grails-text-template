@@ -45,7 +45,6 @@ class TextTemplateController {
             ]
     ]
 
-    def textTemplateService
     def currentTenant
 
     def index() {
@@ -53,14 +52,20 @@ class TextTemplateController {
     }
 
     def list() {
-        if (!params.max) params.max = 20
+        params.max = Math.min(params.max ? params.int('max') : 20, 100)
         def tenant = currentTenant?.get()
-        def result = tenant ? TextTemplate.findAllByTenantId(tenant, params) : TextTemplate.list(params)
-        [templateList: result]
+        def result = TextTemplate.createCriteria().list(params) {
+            if (tenant) {
+                eq('tenantId', tenant)
+            } else {
+                isNull('tenantId')
+            }
+        }
+        [templateList: result, totalCount: result.totalCount]
     }
 
     def create() {
-        redirect(action:'edit', params:[id:params.id, add:true])
+        redirect(action: 'edit', params: [id: params.id, add: true])
     }
 
     def edit() {
@@ -70,7 +75,7 @@ class TextTemplateController {
         if (params.id) {
             textTemplate = TextTemplate.findByIdAndTenantId(params.id, tenant)
             if (textTemplate) {
-                textContent = textTemplate.content?.find{it}
+                textContent = textTemplate.content?.find { it }
             } else {
                 flash.error = message(code: 'textTemplate.not.found.message', args: [message(code: 'textTemplate.label', default: 'Template'), params.id])
                 redirect action: 'list'
@@ -91,7 +96,7 @@ class TextTemplateController {
 
         switch (request.method) {
             case 'GET':
-                if(params.boolean('add') || ! textContent) {
+                if (params.boolean('add') || !textContent) {
                     textContent = new TextContent(template: textTemplate)
                 }
                 return [textTemplate: textTemplate, textContent: textContent]
@@ -99,7 +104,7 @@ class TextTemplateController {
 
                 bindData(textTemplate, params, [include: ['name', 'status', 'visibleFrom', 'visibleTo', 'master']])
 
-                if(! params.content) {
+                if (!params.content) {
                     textContent = new TextContent(template: textTemplate)
                     textTemplate.addToContent(textContent)
                 }
