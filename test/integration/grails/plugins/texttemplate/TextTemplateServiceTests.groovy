@@ -120,6 +120,10 @@ class TextTemplateServiceTests extends GroovyTestCase {
         assert textTemplateService.applyTemplate("test-integration-apply", "text/plain", [arg: "World!"]) == "Hello World!"
         assert textTemplateService.applyTemplate("test-integration-apply", "text/html", [arg: "World!"]) == "<h1>Hello World!</h1>"
         assert textTemplateService.applyTemplate("test-integration-apply", "text/xml", [arg: "World!"]) == ''
+
+        def content = textTemplateService.content("test-integration-apply", "text/plain")
+        assert content != null
+        assert textTemplateService.applyTemplate(content, [arg: "Grails!"]) == "Hello Grails!"
     }
 
     void testCreateLink() {
@@ -169,5 +173,29 @@ class TextTemplateServiceTests extends GroovyTestCase {
 
         currentTenant.set(null)
         assert textTemplateService.text("tenant") == null
+    }
+
+    void testLanguage() {
+        textTemplateService.createContent("test-integration-lang", "text/plain", "Hello \${arg}", "en")
+        textTemplateService.createContent("test-integration-lang", "text/plain", "Hej \${arg}", "sv")
+        textTemplateService.createContent("test-integration-lang", "text/plain", "Hola \${arg}", "es")
+        textTemplateService.createContent("test-integration-lang", "text/plain", "Hei \${arg}", "fi")
+        textTemplateService.createContent("test-integration-lang", "text/plain", "Hallo \${arg}", "de")
+
+        assert textTemplateService.applyTemplate("test-integration-lang", "text/plain", [arg: "Grails!", language: "en"]) == "Hello Grails!"
+        assert textTemplateService.applyTemplate("test-integration-lang", "text/plain", [arg: "Grails!", language: "sv"]) == "Hej Grails!"
+        assert textTemplateService.applyTemplate("test-integration-lang", "text/plain", [arg: "Grails!", language: "es"]) == "Hola Grails!"
+        assert textTemplateService.applyTemplate("test-integration-lang", "text/plain", [arg: "Grails!", lang: "fi"]) == "Hei Grails!"
+        assert textTemplateService.applyTemplate("test-integration-lang", "text/plain", [arg: "Grails!", lang: "de"]) == "Hallo Grails!"
+    }
+
+    void testLocale() {
+        textTemplateService.createContent("test-integration-locale", "text/plain", 'Date is <g:formatDate type="date" date="\${date}"/>')
+        def date = Date.parse("yyyy-MM-dd", "2012-11-02")
+        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: "en_UK"]) == "Date is 11/2/12"
+        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: "sv_SE"]) == "Date is 2012-11-02"
+        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: "es_ES"]) == "Date is foo"
+        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: new Locale("fi_FI")]) == "Date is foo"
+        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: new Locale("de_DE")]) == "Date is foo"
     }
 }

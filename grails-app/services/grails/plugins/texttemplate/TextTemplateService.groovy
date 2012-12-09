@@ -69,9 +69,19 @@ class TextTemplateService {
         def now = new Date()
         def result = findContent(tenant, templateName, contentName, contentType, language, now)
         if (!result) {
-            def defaultTenant = grailsApplication.config.textTemplate.defaultTenant
-            if (defaultTenant && defaultTenant != tenant) {
-                result = findContent(defaultTenant, templateName, contentName, contentType, language, now)
+            if (language) {
+                // Try without language.
+                result = findContent(tenant, templateName, contentName, contentType, null, now)
+            }
+            if (!result) {
+                def defaultTenant = grailsApplication.config.textTemplate.defaultTenant
+                if (defaultTenant && defaultTenant != tenant) {
+                    result = findContent(defaultTenant, templateName, contentName, contentType, language, now)
+                    if (language) {
+                        // Try without language.
+                        result = findContent(defaultTenant, templateName, contentName, contentType, null, now)
+                    }
+                }
             }
         }
         if (result) {
@@ -334,6 +344,38 @@ class TextTemplateService {
         return !result.isEmpty()
     }
 
+    String applyTemplate(String templateContent, Map binding) {
+        def out = new StringWriter()
+        if (templateContent) {
+            def requestAttributes = RequestContextHolder.getRequestAttributes()
+            boolean unbindRequest = false
+            try {
+                // outside of an executing request, establish a mock version
+                if (!requestAttributes) {
+                    def servletContext = ServletContextHolder.getServletContext()
+                    def applicationContext = WebApplicationContextUtils.getRequiredWebApplicationContext(servletContext)
+                    requestAttributes = grails.util.GrailsWebUtil.bindMockWebRequest(applicationContext)
+                    unbindRequest = true
+                    log.debug "Not in web request, created mock request: $requestAttributes"
+                    def locale = binding.locale ?: (binding.language ?: binding.lang)
+                    if (locale) {
+                        def request = requestAttributes.getCurrentRequest()
+                        if (!(locale instanceof Locale)) {
+                            locale = new Locale(* locale.toString().split('_'))
+                        }
+                        request.addPreferredLocale(locale)
+                    }
+                }
+                groovyPagesTemplateEngine.createTemplate(templateContent, templateContent.encodeAsMD5()).make(binding).writeTo(out)
+            } finally {
+                if (unbindRequest) {
+                    RequestContextHolder.setRequestAttributes(null)
+                }
+            }
+        }
+        return out.toString()
+    }
+
     String applyTemplate(String templateName, String contentType, Map binding) {
         def out = new StringWriter()
         try {
@@ -358,7 +400,15 @@ class TextTemplateService {
                     def applicationContext = WebApplicationContextUtils.getRequiredWebApplicationContext(servletContext)
                     requestAttributes = grails.util.GrailsWebUtil.bindMockWebRequest(applicationContext)
                     unbindRequest = true
-                    log.info "Not in web request, created mock request: $requestAttributes"
+                    log.debug "Not in web request, created mock request: $requestAttributes"
+                    def locale = binding.locale ?: language
+                    if (locale) {
+                        def request = requestAttributes.getCurrentRequest()
+                        if (!(locale instanceof Locale)) {
+                            locale = new Locale(* locale.toString().split('_'))
+                        }
+                        request.addPreferredLocale(locale)
+                    }
                 }
                 groovyPagesTemplateEngine.createTemplate(templateContent, "${templateName}-${contentType.replace('/', '-')}").make(binding).writeTo(out)
             } finally {
