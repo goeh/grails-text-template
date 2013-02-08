@@ -190,12 +190,12 @@ class TextTemplateServiceTests extends GroovyTestCase {
     }
 
     void testLocale() {
-        textTemplateService.createContent("test-integration-locale", "text/plain", 'Date is <g:formatDate type="date" date="\${date}"/>')
+        textTemplateService.createContent("test-integration-locale", "text/plain", 'Date: <g:formatDate type="date" style="long" date="\${date}"/>')
         def date = Date.parse("yyyy-MM-dd", "2012-11-02")
-        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: "en_UK"]) == "Date is 11/2/12"
-        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: "sv_SE"]) == "Date is 2012-11-02"
-        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: "es_ES"]) == "Date is foo"
-        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: new Locale("fi_FI")]) == "Date is foo"
-        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: new Locale("de_DE")]) == "Date is foo"
+        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: "en_UK"]) == "Date: November 2, 2012"
+        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: "sv_SE"]) == "Date: den 2 november 2012"
+        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: "es_ES"]) == "Date: 2 de noviembre de 2012"
+        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: new Locale("fi_FI")]) == "Date: November 2, 2012"
+        assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: new Locale("de_DE")]) == "Date: November 2, 2012"
     }
 }

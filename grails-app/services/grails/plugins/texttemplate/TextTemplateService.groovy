@@ -23,7 +23,7 @@ import org.codehaus.groovy.grails.web.context.ServletContextHolder
 import org.springframework.web.context.request.RequestContextHolder
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang.StringUtils
-import javax.activation.MimetypesFileTypeMap
+import java.text.Normalizer
 
 class TextTemplateService {
 
@@ -32,7 +32,6 @@ class TextTemplateService {
     def currentTenant
 
     LinkGenerator grailsLinkGenerator
-    MimetypesFileTypeMap mimetypesFileTypeMap
 
     String text(String name, String language = null) {
         content(name, 'text/plain', language)
@@ -98,7 +97,10 @@ class TextTemplateService {
     }
 
     private List findContent(Number tenant, String templateName, String contentName, String contentType, String language, Date now) {
-        TextContent.createCriteria().list {
+        if (log.isDebugEnabled()) {
+            log.debug "findContent(tenant=$tenant, template=$templateName, content=$contentName, type=$contentType, lang=$language, date=$now)"
+        }
+        def result = TextContent.createCriteria().list {
             template {
                 eq('status', TextTemplate.STATUS_PUBLISHED)
                 eq('name', templateName)
@@ -129,6 +131,14 @@ class TextTemplateService {
             }
             cache true
         }
+        if (log.isDebugEnabled()) {
+            if (result) {
+                log.debug "Found content: ${StringUtils.abbreviate(result.head().text, 40)}"
+            } else {
+                log.debug "No content found"
+            }
+        }
+        return result
     }
 
     private String wildcard(String q) {
@@ -392,6 +402,12 @@ class TextTemplateService {
         def templateContent = content(templateName, contentType, language)
         if (templateContent) {
             def requestAttributes = RequestContextHolder.getRequestAttributes()
+            def locale = binding.locale ?: language
+            if (locale) {
+                if (!(locale instanceof Locale)) {
+                    locale = new Locale(* locale.toString().split('_'))
+                }
+            }
             boolean unbindRequest = false
             try {
                 // outside of an executing request, establish a mock version
@@ -401,14 +417,11 @@ class TextTemplateService {
                     requestAttributes = grails.util.GrailsWebUtil.bindMockWebRequest(applicationContext)
                     unbindRequest = true
                     log.debug "Not in web request, created mock request: $requestAttributes"
-                    def locale = binding.locale ?: language
                     if (locale) {
-                        def request = requestAttributes.getCurrentRequest()
-                        if (!(locale instanceof Locale)) {
-                            locale = new Locale(* locale.toString().split('_'))
-                        }
-                        request.addPreferredLocale(locale)
+                        requestAttributes.getCurrentRequest().addPreferredLocale(locale)
                     }
+                } else if (locale && (locale != requestAttributes.getCurrentRequest().getLocale())) {
+                    requestAttributes.getCurrentRequest().addPreferredLocale(locale)
                 }
                 groovyPagesTemplateEngine.createTemplate(templateContent, "${templateName}-${contentType.replace('/', '-')}").make(binding).writeTo(out)
             } finally {
@@ -429,21 +442,28 @@ class TextTemplateService {
         grailsLinkGenerator.link(params)
     }
 
+    // Normalize to "Normalization Form Canonical Decomposition" (NFD)
+    private String normalizeUnicode(String str) {
+        Normalizer.Form form = Normalizer.Form.NFC
+        Normalizer.isNormalized(str, form) ? str : Normalizer.normalize(str, form)
+    }
+
     void addContentFromFile(File file) {
         def dir = file.parent
-        def filename = file.name
+        def filename = normalizeUnicode(file.name)
         def ext = FilenameUtils.getExtension(filename)
         def language = StringUtils.substringAfterLast(dir, File.pathSeparator)
         def config = grailsApplication.config.textTemplate
         def contentType = config.contentType[ext]
         if (!contentType) {
-            if (!mimetypesFileTypeMap) {
-                mimetypesFileTypeMap = new MimetypesFileTypeMap()
-                // Strangely text/xml and application/json is not included in JDK6 mime_types
-                mimetypesFileTypeMap.addMimeTypes("text/xml xml")
-                mimetypesFileTypeMap.addMimeTypes("application/json json")
+            contentType = URLConnection.getFileNameMap().getContentTypeFor(filename)
+            if (! contentType) {
+                switch(ext) {
+                    case 'json':
+                        contentType = 'application/json'
+                        break
+                }
             }
-            contentType = mimetypesFileTypeMap.getContentType(file)
         }
         def (templateName, contentName) = getNamePair(filename)
         def tenant = config.defaultTenant
