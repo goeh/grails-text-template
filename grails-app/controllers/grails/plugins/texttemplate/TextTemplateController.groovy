@@ -68,16 +68,16 @@ class TextTemplateController {
         redirect(action: 'edit', params: [id: params.id, add: true])
     }
 
-    def edit() {
+    def edit(Long id, Long content) {
         def tenant = currentTenant?.get()
         def textTemplate
         def textContent
-        if (params.id) {
-            textTemplate = TextTemplate.findByIdAndTenantId(params.id, tenant)
+        if (id) {
+            textTemplate = TextTemplate.findByIdAndTenantId(id, tenant)
             if (textTemplate) {
                 textContent = textTemplate.content?.find { it }
             } else {
-                flash.error = message(code: 'textTemplate.not.found.message', args: [message(code: 'textTemplate.label', default: 'Template'), params.id])
+                flash.error = message(code: 'textTemplate.not.found.message', args: [message(code: 'textTemplate.label', default: 'Template'), id])
                 redirect action: 'list'
                 return
             }
@@ -85,11 +85,11 @@ class TextTemplateController {
             textTemplate = new TextTemplate(tenantId: tenant)
         }
 
-        if (params.content) {
-            textContent = TextContent.get(params.content)
+        if (content) {
+            textContent = TextContent.get(content)
             if (textContent == null || textContent.template != textTemplate) {
-                flash.error = message(code: 'textContent.not.found.message', args: [message(code: 'textContent.label', default: 'Content'), params.content])
-                redirect action: 'edit', id: params.id
+                flash.error = message(code: 'textContent.not.found.message', args: [message(code: 'textContent.label', default: 'Content'), content])
+                redirect action: 'edit', id: id
                 return
             }
         }
@@ -104,7 +104,7 @@ class TextTemplateController {
 
                 bindData(textTemplate, params, [include: ['name', 'status', 'visibleFrom', 'visibleTo', 'master']])
 
-                if (!params.content) {
+                if (!content) {
                     textContent = new TextContent(template: textTemplate)
                     textTemplate.addToContent(textContent)
                 }
