@@ -46,6 +46,7 @@ class TextTemplateController {
     ]
 
     def currentTenant
+    def textTemplateService
 
     def index() {
         redirect action: 'list', params: params
@@ -171,5 +172,14 @@ class TextTemplateController {
             flash.error = message(code: 'textTemplate.not.deleted.message', args: [message(code: 'textTemplate.label', default: 'Template'), id])
             redirect action: 'edit', params: [id: id, content: content]
         }
+    }
+
+    def test() {
+        if(! textTemplateService.content("functional-test", "text/html")) {
+            textTemplateService.createContent("functional-test", "text/html",
+                    "<g:link controller=\"textTemplate\" action=\"test\">Functional test</g:link> at \${date}")
+        }
+
+        [date: new Date()]
     }
 }

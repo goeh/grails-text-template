@@ -45,25 +45,25 @@ class TextTemplateTagLibTests extends GroovyPagesTestCase {
     }
 
     void testAnyType() {
-        textTemplateService.createContent("test-integration-any", "text/html", "<h1>Hello World</h1>")
+        textTemplateService.createContent("test-integration-2", "text/html", "<h1>Hello World</h1>")
 
-        assert applyTemplate('<tt:content name="test-integration-any">FOO</tt:content>') == '<h1>Hello World</h1>'
-        assert applyTemplate('<tt:content name="test-integration-any" contentType="text/plain">FOO</tt:content>') == 'FOO'
+        assert applyTemplate('<tt:content name="test-integration-2">FOO</tt:content>') == '<h1>Hello World</h1>'
+        assert applyTemplate('<tt:content name="test-integration-2" contentType="text/plain">FOO</tt:content>') == 'FOO'
 
-        textTemplateService.createContent("test-integration-any", "text/plain", "Hello World")
+        textTemplateService.createContent("test-integration-2", "text/plain", "Hello World")
 
-        assert applyTemplate('<tt:content name="test-integration-any" contentType="text/plain">FOO</tt:content>') == 'Hello World'
+        assert applyTemplate('<tt:content name="test-integration-2" contentType="text/plain">FOO</tt:content>') == 'Hello World'
         // Multiple content gets concatenated
-        assert applyTemplate('<tt:content name="test-integration-any">FOO</tt:content>') == '<h1>Hello World</h1>Hello World'
+        assert applyTemplate('<tt:content name="test-integration-2">FOO</tt:content>') == '<h1>Hello World</h1>Hello World'
 
-        textTemplateService.deleteContent("test-integration-any", "text/html")
+        textTemplateService.deleteContent("test-integration-2", "text/html")
 
         // Now we only have text/plain left.
-        assert applyTemplate('<tt:content name="test-integration-any">FOO</tt:content>') == 'Hello World'
+        assert applyTemplate('<tt:content name="test-integration-2">FOO</tt:content>') == 'Hello World'
 
-        textTemplateService.deleteTemplate("test-integration-any")
+        textTemplateService.deleteTemplate("test-integration-2")
         // Now we don't have anything left.
-        assert applyTemplate('<tt:content name="test-integration-any">FOO</tt:content>') == 'FOO'
+        assert applyTemplate('<tt:content name="test-integration-2">FOO</tt:content>') == 'FOO'
     }
 
     void testGspTag() {

@@ -29,10 +29,11 @@ grails.cache.config = {
    cache {
       name 'textTemplate'
       eternal false
-      overflowToDisk true
+      overflowToDisk false
       maxElementsInMemory 100
-      maxElementsOnDisk 1000
+      maxElementsOnDisk 0
    }
 }
 
+textTemplate.autoImport = false
 textTemplate.defaultTenant = 1

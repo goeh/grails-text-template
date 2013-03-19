@@ -33,15 +33,15 @@ class TextTemplate {
     Date visibleTo
     TextTemplate master
 
-    static hasMany = [content:TextContent]
+    static hasMany = [content: TextContent]
 
     static constraints = {
-        tenantId(nullable:true)
-        name(maxSize:80, blank:false, unique:'tenantId')
+        tenantId(nullable: true)
+        name(maxSize: 80, blank: false, unique: 'tenantId')
         status(inList: STATUSES)
-        visibleFrom(nullable:true)
-        visibleTo(nullable:true)
-        master(nullable:true)
+        visibleFrom(nullable: true)
+        visibleTo(nullable: true)
+        master(nullable: true)
     }
 
     static mapping = {
@@ -61,8 +61,8 @@ class TextTemplate {
      * @return summary of template content
      */
     public String getSummary() {
-        def text = content?.find{it}?.toString()
-        if(text) {
+        def text = content?.find { it }?.toString()
+        if (text) {
             return StringUtils.abbreviate(text, 50)
         }
         return ''

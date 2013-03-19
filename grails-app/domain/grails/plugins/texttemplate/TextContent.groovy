@@ -29,6 +29,7 @@ class TextContent {
     String name
     String language
     String contentType
+    String parser
     String text
 
     static belongsTo = [template:TextTemplate]
@@ -37,6 +38,7 @@ class TextContent {
         name(maxSize:80, blank:false)
         language(maxSize:5, nullable:true)
         contentType(maxSize:100, blank:false)
+        parser(maxSize:40, nullable: true)
         text(maxSize:102400, nullable:true)
     }
 

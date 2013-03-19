@@ -15,11 +15,12 @@
  */
 
 class TextTemplateGrailsPlugin {
-    def version = "1.0"
+    def version = "1.0.1-SNAPSHOT"
     def grailsVersion = "2.0 > *"
     def dependsOn = [:]
     def pluginExcludes = [
             "grails-app/views/error.gsp",
+            "grails-app/views/textTemplate/test.gsp",
             "src/groovy/grails/plugins/texttemplate/TestCurrentTenant.groovy",
             "src/templates/text/**/*"
     ]
@@ -41,6 +42,9 @@ An administration UI is provided where administrators can create and edit text t
     String watchedResources = "file:./src/templates/text/**/*.*".toString()
 
     def doWithApplicationContext = { applicationContext ->
+        if (!application.config.textTemplate.autoImport) {
+            return
+        }
         def templates
         if (application.warDeployed) {
             templates = applicationContext.getResources("**/WEB-INF/templates/text/**/*.*")?.toList()
@@ -51,7 +55,10 @@ An administration UI is provided where administrators can create and edit text t
         if (templates) {
             def textTemplateService = applicationContext.getBean("textTemplateService")
             for (resource in templates) {
-                textTemplateService.addContentFromFile(resource.file)
+                def file = resource.file
+                if (!file.isHidden()) {
+                    textTemplateService.addContentFromFile(file)
+                }
             }
         }
     }

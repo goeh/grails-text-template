@@ -45,26 +45,26 @@ class TextTemplateServiceTests extends GroovyTestCase {
     }
 
     void testAnyType() {
-        textTemplateService.createContent("test-integration-any", "text/html", "<h1>Hello World</h1>")
+        textTemplateService.createContent("test-integration-1", "text/html", "<h1>Hello World</h1>")
 
-        assert textTemplateService.content("test-integration-any") == '<h1>Hello World</h1>'
-        assert textTemplateService.content("test-integration-any", "text/plain") == null
+        assert textTemplateService.content("test-integration-1") == '<h1>Hello World</h1>'
+        assert textTemplateService.content("test-integration-1", "text/plain") == null
 
-        textTemplateService.createContent("test-integration-any", "text/plain", "Hello World")
+        textTemplateService.createContent("test-integration-1", "text/plain", "Hello World")
 
-        assert textTemplateService.content("test-integration-any", "text/plain") == "Hello World"
+        assert textTemplateService.content("test-integration-1", "text/plain") == "Hello World"
 
         // Multiple content gets concatenated
-        assert textTemplateService.content("test-integration-any") == '<h1>Hello World</h1>Hello World'
+        assert textTemplateService.content("test-integration-1") == '<h1>Hello World</h1>Hello World'
 
-        textTemplateService.deleteContent("test-integration-any", "text/html")
+        textTemplateService.deleteContent("test-integration-1", "text/html")
 
         // Now we only have text/plain left.
-        assert textTemplateService.content("test-integration-any") == 'Hello World'
+        assert textTemplateService.content("test-integration-1") == 'Hello World'
 
-        textTemplateService.deleteTemplate("test-integration-any")
+        textTemplateService.deleteTemplate("test-integration-1")
         // Now we don't have anything left.
-        assert textTemplateService.content("test-integration-any") == null
+        assert textTemplateService.content("test-integration-1") == null
     }
 
     void testStatus() {
@@ -197,5 +197,10 @@ class TextTemplateServiceTests extends GroovyTestCase {
         assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: "es_ES"]) == "Date: 2 de noviembre de 2012"
         assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: new Locale("fi_FI")]) == "Date: November 2, 2012"
         assert textTemplateService.applyTemplate("test-integration-locale", "text/plain", [date: date, locale: new Locale("de_DE")]) == "Date: November 2, 2012"
+    }
+
+    void testTemplateNameWithAccents() {
+        textTemplateService.createContent("räksmörgås", "text/plain", 'Chrimp Sandwich')
+        assert textTemplateService.applyTemplate("räksmörgås", "text/plain") == 'Chrimp Sandwich'
     }
 }

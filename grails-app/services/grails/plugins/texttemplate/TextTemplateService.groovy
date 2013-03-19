@@ -18,6 +18,7 @@ package grails.plugins.texttemplate
 
 import groovy.json.JsonSlurper
 import org.codehaus.groovy.grails.web.mapping.LinkGenerator
+import org.springframework.core.io.ByteArrayResource
 import org.springframework.web.context.support.WebApplicationContextUtils
 import org.codehaus.groovy.grails.web.context.ServletContextHolder
 import org.springframework.web.context.request.RequestContextHolder
@@ -57,6 +58,24 @@ class TextTemplateService {
     }
 
     String content(String name, String contentType = null, String language = null) {
+        concatenate(getContentList(name, contentType, language))
+    }
+
+    protected String concatenate(List<TextContent> result) {
+        if (result) {
+            def s = new StringBuilder()
+            for (c in result) {
+                def text = c.text
+                if (text) {
+                    s << text
+                }
+            }
+            return s.toString()
+        }
+        return null // Returning null means template was not found
+    }
+
+    protected List<TextContent> getContentList(String name, String contentType = null, String language = null) {
         if (!name) {
             throw new IllegalArgumentException("Mandatory parameter [name] is missing")
         }
@@ -83,20 +102,10 @@ class TextTemplateService {
                 }
             }
         }
-        if (result) {
-            def s = new StringBuilder()
-            for (c in result) {
-                def text = c.text
-                if (text) {
-                    s << text
-                }
-            }
-            return s.toString()
-        }
-        return null // Returning null means template was not found
+        result
     }
 
-    private List findContent(Number tenant, String templateName, String contentName, String contentType, String language, Date now) {
+    private List<TextContent> findContent(Number tenant, String templateName, String contentName, String contentType, String language, Date now) {
         if (log.isDebugEnabled()) {
             log.debug "findContent(tenant=$tenant, template=$templateName, content=$contentName, type=$contentType, lang=$language, date=$now)"
         }
@@ -129,7 +138,7 @@ class TextTemplateService {
             } else {
                 isNull('language')
             }
-            cache true
+            //cache true
         }
         if (log.isDebugEnabled()) {
             if (result) {
@@ -167,7 +176,7 @@ class TextTemplateService {
             } else {
                 isNull('tenantId')
             }
-            cache true
+            //cache true
         }
     }
 
@@ -185,7 +194,7 @@ class TextTemplateService {
                     isNull('tenantId')
                 }
             }
-            cache true
+            //cache true
         }
     }
 
@@ -201,7 +210,7 @@ class TextTemplateService {
             } else {
                 isNull('tenantId')
             }
-            cache true
+            //cache true
         }
     }
 
@@ -209,6 +218,7 @@ class TextTemplateService {
         def tmpl = template(name)
         if (tmpl) {
             tmpl.status = TextTemplate.STATUS_DISABLED
+            groovyPagesTemplateEngine.clearPageCache()
             log.debug "Disabled template [$name]"
         } else {
             throw new IllegalArgumentException("Template not found: $name")
@@ -219,6 +229,7 @@ class TextTemplateService {
         def tmpl = template(name)
         if (tmpl) {
             tmpl.status = TextTemplate.STATUS_DRAFT
+            groovyPagesTemplateEngine.clearPageCache()
         } else {
             throw new IllegalArgumentException("Template not found: $name")
         }
@@ -230,6 +241,7 @@ class TextTemplateService {
         if (tmpl) {
             tmpl.status = TextTemplate.STATUS_PUBLISHED
             log.debug "Published template [$name]"
+            groovyPagesTemplateEngine.clearPageCache()
         } else {
             throw new IllegalArgumentException("Template not found: $name")
         }
@@ -240,6 +252,7 @@ class TextTemplateService {
         if (tmpl) {
             tmpl.visibleFrom = visibleFrom
             tmpl.visibleTo = visibleTo
+            groovyPagesTemplateEngine.clearPageCache()
         } else {
             throw new IllegalArgumentException("Template not found: $name")
         }
@@ -265,7 +278,7 @@ class TextTemplateService {
         } ?: new TextTemplate(status: TextTemplate.STATUS_PUBLISHED, name: templateName, tenantId: tenant)
 
         def textContent = textTemplate.id ? TextContent.createCriteria().get() {
-            eq('template', textTemplate)
+            eq('template.id', textTemplate.ident())
             eq('name', contentName)
             eq('contentType', contentType)
             if (language) {
@@ -287,6 +300,7 @@ class TextTemplateService {
         }
 
         textTemplate.save(failOnError: true)
+        groovyPagesTemplateEngine.clearPageCache()
         log.debug("Created/updated text template [$name]")
         return textContent
     }
@@ -305,12 +319,14 @@ class TextTemplateService {
                 isNull('tenantId')
             }
         }
+        def rval = false
         if (textTemplate) {
             textTemplate.delete()
             log.debug("Deleted text template [$name]")
-            return true
+            rval = true
         }
-        return false
+        groovyPagesTemplateEngine.clearPageCache()
+        return rval
     }
 
     boolean deleteContent(String name, String contentType, String language = null) {
@@ -351,14 +367,16 @@ class TextTemplateService {
             textContent.delete()
             log.debug("Deleted text content [$name] contentType=$contentType language=$language")
         }
+        groovyPagesTemplateEngine.clearPageCache()
         return !result.isEmpty()
     }
 
-    String applyTemplate(String templateContent, Map binding) {
+    String applyTemplate(String templateContent, Map binding = [:], boolean cache = false) {
         def out = new StringWriter()
         if (templateContent) {
             def requestAttributes = RequestContextHolder.getRequestAttributes()
             boolean unbindRequest = false
+            def language = (binding.language ?: binding.lang)
             try {
                 // outside of an executing request, establish a mock version
                 if (!requestAttributes) {
@@ -367,16 +385,29 @@ class TextTemplateService {
                     requestAttributes = grails.util.GrailsWebUtil.bindMockWebRequest(applicationContext)
                     unbindRequest = true
                     log.debug "Not in web request, created mock request: $requestAttributes"
-                    def locale = binding.locale ?: (binding.language ?: binding.lang)
+                    def locale = binding.locale ?: language
                     if (locale) {
                         def request = requestAttributes.getCurrentRequest()
                         if (!(locale instanceof Locale)) {
                             locale = new Locale(* locale.toString().split('_'))
                         }
                         request.addPreferredLocale(locale)
+                        if (!language) {
+                            language = locale.toString()
+                        }
                     }
                 }
-                groovyPagesTemplateEngine.createTemplate(templateContent, templateContent.encodeAsMD5()).make(binding).writeTo(out)
+                def name = templateContent.encodeAsMD5()
+                if (language) {
+                    name = (name + '_' + language)
+                }
+                def tenant = currentTenant?.get()
+                if (tenant) {
+                    name = 't' + tenant + '-' + name
+                }
+                println name
+                def res = new ByteArrayResource(templateContent.getBytes("UTF-8"), name)
+                groovyPagesTemplateEngine.createTemplate(res, cache).make(binding).writeTo(out)
             } finally {
                 if (unbindRequest) {
                     RequestContextHolder.setRequestAttributes(null)
@@ -386,7 +417,7 @@ class TextTemplateService {
         return out.toString()
     }
 
-    String applyTemplate(String templateName, String contentType, Map binding) {
+    String applyTemplate(String templateName, String contentType, Map binding = [:]) {
         def out = new StringWriter()
         try {
             applyTemplate(out, templateName, contentType, binding)
@@ -397,7 +428,7 @@ class TextTemplateService {
         return out.toString()
     }
 
-    void applyTemplate(Writer out, String templateName, String contentType, Map binding) {
+    void applyTemplate(Writer out, String templateName, String contentType, Map binding = [:], boolean cache = false) {
         String language = binding.language ?: binding.lang
         def templateContent = content(templateName, contentType, language)
         if (templateContent) {
@@ -423,7 +454,17 @@ class TextTemplateService {
                 } else if (locale && (locale != requestAttributes.getCurrentRequest().getLocale())) {
                     requestAttributes.getCurrentRequest().addPreferredLocale(locale)
                 }
-                groovyPagesTemplateEngine.createTemplate(templateContent, "${templateName}-${contentType.replace('/', '-')}").make(binding).writeTo(out)
+                def name = templateName + '-' + contentType.replace('/', '-')
+                if (language) {
+                    name = (name + '_' + language)
+                }
+                def tenant = currentTenant?.get()
+                if (tenant) {
+                    name = 't' + tenant + '-' + name
+                }
+                println name
+                def res = new ByteArrayResource(templateContent.getBytes('UTF-8'), name)
+                groovyPagesTemplateEngine.createTemplate(res, cache).make(binding).writeTo(out)
             } finally {
                 if (unbindRequest) {
                     RequestContextHolder.setRequestAttributes(null)
@@ -457,8 +498,8 @@ class TextTemplateService {
         def contentType = config.contentType[ext]
         if (!contentType) {
             contentType = URLConnection.getFileNameMap().getContentTypeFor(filename)
-            if (! contentType) {
-                switch(ext) {
+            if (!contentType) {
+                switch (ext) {
                     case 'json':
                         contentType = 'application/json'
                         break
@@ -492,7 +533,7 @@ class TextTemplateService {
                 } else {
                     isNull('language')
                 }
-                cache true
+                //cache true
             }
             if (!exists) {
                 createContent(filename, contentType, file.text, language)
