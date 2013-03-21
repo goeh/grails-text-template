@@ -500,8 +500,23 @@ class TextTemplateService {
             contentType = URLConnection.getFileNameMap().getContentTypeFor(filename)
             if (!contentType) {
                 switch (ext) {
+                    case 'html':
+                    case 'htm':
+                    case 'ftl':
+                        contentType = 'text/html'
+                        break
+                    case 'txt':
+                    case 'ini':
+                        contentType = 'text/plain'
+                        break
+                    case 'xml':
+                        contentType = 'text/xml'
+                        break
                     case 'json':
                         contentType = 'application/json'
+                        break
+                    default:
+                        contentType = 'application/octet-stream'
                         break
                 }
             }

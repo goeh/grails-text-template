@@ -15,15 +15,19 @@
  */
 
 class TextTemplateGrailsPlugin {
-    def version = "1.0.1-SNAPSHOT"
+    def version = "1.0.1"
     def grailsVersion = "2.0 > *"
     def dependsOn = [:]
+    def loadAfter = ['controllers', 'services']
+
     def pluginExcludes = [
             "grails-app/views/error.gsp",
             "grails-app/views/textTemplate/test.gsp",
             "src/groovy/grails/plugins/texttemplate/TestCurrentTenant.groovy",
-            "src/templates/text/**/*"
+            "src/templates/text/**"
     ]
+    def watchedResources = "file:./src/templates/text/**/*.*"
+
     def title = "Text Template Plugin"
     def author = "Goran Ehrsson"
     def authorEmail = "goran@technipelago.se"
@@ -38,8 +42,6 @@ An administration UI is provided where administrators can create and edit text t
     def organization = [name: "Technipelago AB", url: "http://www.technipelago.se/"]
     def issueManagement = [system: "github", url: "https://github.com/goeh/grails-text-template/issues"]
     def scm = [url: "https://github.com/goeh/grails-text-template"]
-
-    String watchedResources = "file:./src/templates/text/**/*.*".toString()
 
     def doWithApplicationContext = { applicationContext ->
         if (!application.config.textTemplate.autoImport) {
@@ -64,10 +66,7 @@ An administration UI is provided where administrators can create and edit text t
     }
 
     def onChange = { event ->
-        def context = event.ctx
-        if (!context) {
-            log.debug("Application context not found. Can't reload")
-            return
-        }
+        // NOTE! Don't remove this empty closure! If you do 'plugin.watchedResources' will be null and
+        // the code in doWithApplicationContext above will fail to load templates in run-app mode.
     }
 }
