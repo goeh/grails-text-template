@@ -19,6 +19,9 @@ package grails.plugins.texttemplate
 
 import org.codehaus.groovy.grails.web.pages.GroovyPagesTemplateEngine
 import org.codehaus.groovy.grails.compiler.web.pages.GroovyPageClassLoader
+import org.codehaus.groovy.grails.web.pages.TagLibraryLookup
+import org.springframework.beans.BeansException
+import org.springframework.context.ApplicationContext
 import org.springframework.core.io.ByteArrayResource
 
 class TextTemplateTagLib {
@@ -29,13 +32,31 @@ class TextTemplateTagLib {
     def currentTenant
     def grailsApplication
 
+    private static final String TEMPLATE_ENGINE_REQUEST_ATTRIBUTE_KEY = "TT_GROOVY_PAGES_TEMPLATE_ENGINE"
+
+    private TagLibraryLookup getTagLibraryLookup() {
+        TagLibraryLookup tagLibraryLookup
+        if (tagLibraryLookup == null) {
+            ApplicationContext applicationContext = grailsApplication.mainContext
+            if (applicationContext != null) {
+                try {
+                    tagLibraryLookup = applicationContext.getBean(TagLibraryLookup.class)
+                } catch (BeansException e) {
+                    return null
+                }
+            }
+        }
+        return tagLibraryLookup
+    }
+
     private GroovyPagesTemplateEngine getEngine(request) {
-        def groovyPagesTemplateEngine = request.getAttribute('TT_GROOVY_PAGES_TEMPLATE_ENGINE')
+        def groovyPagesTemplateEngine = request.getAttribute(TEMPLATE_ENGINE_REQUEST_ATTRIBUTE_KEY)
         if (!groovyPagesTemplateEngine) {
             synchronized (request) {
                 groovyPagesTemplateEngine = new GroovyPagesTemplateEngine(servletContext)
                 groovyPagesTemplateEngine.setClassLoader(new GroovyPageClassLoader(grailsApplication.getClassLoader()))
-                request.setAttribute('TT_GROOVY_PAGES_TEMPLATE_ENGINE', groovyPagesTemplateEngine)
+                groovyPagesTemplateEngine.setTagLibraryLookup(getTagLibraryLookup())
+                request.setAttribute(TEMPLATE_ENGINE_REQUEST_ATTRIBUTE_KEY, groovyPagesTemplateEngine)
             }
         }
         return groovyPagesTemplateEngine
