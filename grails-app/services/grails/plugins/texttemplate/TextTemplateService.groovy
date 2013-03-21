@@ -405,7 +405,6 @@ class TextTemplateService {
                 if (tenant) {
                     name = 't' + tenant + '-' + name
                 }
-                println name
                 def res = new ByteArrayResource(templateContent.getBytes("UTF-8"), name)
                 groovyPagesTemplateEngine.createTemplate(res, cache).make(binding).writeTo(out)
             } finally {
@@ -462,7 +461,6 @@ class TextTemplateService {
                 if (tenant) {
                     name = 't' + tenant + '-' + name
                 }
-                println name
                 def res = new ByteArrayResource(templateContent.getBytes('UTF-8'), name)
                 groovyPagesTemplateEngine.createTemplate(res, cache).make(binding).writeTo(out)
             } finally {
